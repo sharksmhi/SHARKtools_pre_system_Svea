@@ -80,6 +80,7 @@ class LabelDropdownList(ColoredFrame):
                  parent,
                  title='dropdown list',
                  width=10,
+                 state='readonly',
                  **kwargs):
 
         self.grid_frame = {'padx': 5,
@@ -89,6 +90,7 @@ class LabelDropdownList(ColoredFrame):
 
         self.title = title
         self.width = width
+        self.state = state
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
@@ -105,7 +107,7 @@ class LabelDropdownList(ColoredFrame):
         MonospaceLabel(self, text=self.title).grid(column=0, padx=5, pady=5, sticky='w')
 
         self.stringvar = tk.StringVar()
-        self.combobox = ttk.Combobox(self, width=self.width, textvariable=self.stringvar, state="readonly")
+        self.combobox = ttk.Combobox(self, width=self.width, textvariable=self.stringvar, state=self.state)
         self.combobox.bind("<<ComboboxSelected>>", self._on_select)
         self.combobox.grid(row=0, column=1, padx=5, pady=5, sticky='w')
 
@@ -117,6 +119,8 @@ class LabelDropdownList(ColoredFrame):
 
     def add_callback_select(self, func):
         self._cb_select.add(func)
+
+        self.set_values('hej')
 
     @property
     def values(self):
