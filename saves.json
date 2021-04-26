@@ -8,7 +8,7 @@
                 "3854077-0507"
             ],
             "current_instrument": "SBE38",
-            "current_sort_par": "sensor_id"
+            "current_sort_par": "status"
         }
     },
     "StationPreSystemFrame": {

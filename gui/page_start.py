@@ -10,6 +10,8 @@ from sharkpylib.tklib import tkinter_widgets as tkw
 
 from . import frames
 
+from pathlib import Path
+
 from . import components
 
 from ctd_processing.sensor_info import InstrumentFile
@@ -40,7 +42,7 @@ class PageStart(tk.Frame):
         self._frame_start_up.save_selection()
 
     def update_page(self):
-        file_path = r'C:\mw\temp_svea\temp_filer/Instruments.xlsx'
+        file_path = Path(Path(__file__).parent.parent, 'temp','Instruments.xlsx')
         instrument = InstrumentFile(file_path)
         self._frame_start_up.update_sbe_instrument_info(instrument.sbe_instrument_info)
 
