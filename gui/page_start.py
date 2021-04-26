@@ -42,7 +42,7 @@ class PageStart(tk.Frame):
         self._frame_start_up.save_selection()
 
     def update_page(self):
-        file_path = Path(Path(__file__).parent.parent, 'temp','Instruments.xlsx')
+        file_path = Path(Path(__file__).parent.parent, 'temp_files','Instruments.xlsx')
         instrument = InstrumentFile(file_path)
         self._frame_start_up.update_sbe_instrument_info(instrument.sbe_instrument_info)
 
