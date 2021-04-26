@@ -1,0 +1,34 @@
+{
+    "": {
+        "_sensor_table": {
+            "bad_sensors": [
+                "03-6378",
+                "04-4824",
+                "3860388-0569",
+                "3854077-0507"
+            ],
+            "current_instrument": "SBE38",
+            "current_sort_par": "sensor_id"
+        }
+    },
+    "StationPreSystemFrame": {
+        "_cruise": [
+            "",
+            ""
+        ],
+        "_depth": "0",
+        "_new_station": false,
+        "_nr_of_ticks": "0",
+        "_operator": "DBSj",
+        "_position": [
+            "",
+            ""
+        ],
+        "_series": "",
+        "_station": "BY15",
+        "_vessel": [
+            "Svea",
+            "77SE"
+        ]
+    }
+}

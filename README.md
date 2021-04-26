@@ -1,2 +1,2 @@
-# SHARKtools_pre-system_Svea
-Försystem för hantering av CTD och MVP på Svea
+# SHARKtools_svea_ctd
+Plugin for SHARKtools: CTD handling on R/V Svea
