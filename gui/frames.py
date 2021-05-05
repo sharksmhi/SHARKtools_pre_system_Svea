@@ -1,10 +1,14 @@
 import tkinter as tk
+from tkinter import messagebox
 
 from . import components
 
 from sharkpylib.tklib import tkinter_widgets as tkw
 
 from ..saves import SaveSelection
+
+from pre_system_svea.operator import Operators
+from pre_system_svea.station import Stations
 
 TEXT_LJUST = 10
 
@@ -23,7 +27,24 @@ class ColoredFrame(tk.Frame):
         self.config(bg=color)
 
 
-class StationPreSystemFrame(ColoredFrame, SaveSelection):
+class CommonFrameMethods:
+    operators = Operators()
+    stations = Stations()
+
+    def get_operator_list(self):
+        """
+        :return: list of strings
+        """
+        return self.operators.get_operator_list()
+
+    def get_station_list(self):
+        """
+        :return: list of strings
+        """
+        return self.stations.get_station_list()
+
+
+class StationPreSystemFrame(ColoredFrame, SaveSelection, CommonFrameMethods):
 
     def __init__(self,
                  parent,
@@ -55,41 +76,87 @@ class StationPreSystemFrame(ColoredFrame, SaveSelection):
 
         self._cruise = components.CruiseLabelDoubleEntry(frame, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._series = components.SeriesEntryPicker(frame, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._station = components.LabelDropdownList(frame, title='Station'.ljust(TEXT_LJUST), row=2, column=0, **layout)
-        self._depth = components.LabelDropdownList(frame, title='Depth'.ljust(TEXT_LJUST), row=3, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame, title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
+        self._station = components.LabelDropdownList(frame, title='Station'.ljust(TEXT_LJUST), width=25, autocomplete=True, row=2, column=0, **layout)
+        self._distance = components.LabelEntry(frame, title='Distance to station'.ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
+        self._depth = components.LabelEntry(frame, title='Depth'.ljust(TEXT_LJUST), data_type=float, row=4, column=0, **layout)
+        self._operator = components.LabelDropdownList(frame, title='Operator'.ljust(TEXT_LJUST), row=5, column=0, **layout)
 
-        self._vessel = components.VessleLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
+        self._vessel = components.VesselLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
         self._new_station = components.LabelCheckbox(frame, title='New station'.ljust(TEXT_LJUST), row=1, column=1, **layout)
         self._nr_of_ticks = components.LabelDropdownList(frame, title='Number of ticks'.ljust(TEXT_LJUST), row=2, column=1,
                                                      **layout)
-        self._svepa = components.LoadSvepaButton(frame, row=3, column=1, **layout)
+        self._svepa = components.CallbackButton(frame, title='Load SVEPA', row=3, column=1, **layout)
         self._position = components.PositionEntries(frame, row=4, column=1, **layout)
+        self._validate = components.CallbackButton(frame, title='Validate', row=5, column=1, **layout)
 
-        tkw.grid_configure(frame, nr_rows=5, nr_columns=2)
+        tkw.grid_configure(frame, nr_rows=6, nr_columns=2)
 
         # Adding callbacks
         self._station.add_callback_select(self._on_select_station)
+        self._depth.add_callback(self._on_select_depth)
         self._svepa.add_callback(self._load_svepa)
+        self._position.add_callback(self._on_select_lat_lon)
+        self._validate.add_callback(self._validate_all)
 
         # Store selection
         self._selections_to_store = ['_cruise', '_series', '_station', '_depth', '_operator',
                                      '_vessel', '_new_station', '_nr_of_ticks', '_position']
 
     def _initiate_frame(self):
-        self._station.values = get_station_list()
+        self._station.values = self.get_station_list()
         self._depth.values = get_depth_list()
-        self._operator.values = get_operator_list()
+        self._operator.values = self.get_operator_list()
         self._nr_of_ticks.values = get_nr_of_ticks_list()
 
-    def _on_select_station(self):
+    def _on_select_station(self, *args):
+        station_name = self._station.value
+        station_info = self.stations.get_station_info(station_name)
+        if not station_info:
+            return
+        self._depth.value = str(station_info.get('depth'))
         self.save_selection()
+
+    def _on_select_lat_lon(self, *args):
+        lat, lon = self._position.get()
+        if not lat and lon:
+            return
+        # Check position against station list
+        station_info = self.stations.get_closest_station(lat, lon)
+        if not station_info:
+            self._station.value = ''
+            self._distance.value = ''
+            return
+
+        self._station.value = station_info.get('station', '')
+        self._depth.value = station_info.get('depth', '')
+        self._distance.value = station_info.get('distance', '')
+
+    def _on_select_depth(self, *args):
+        pass
+
+    def _validate_all(self):
+        """
+        Validates if station and depth has matching information.
+        :return:
+        """
+        pass
+
+    def _is_validate_station_name(self):
+        """
+        Check if the station name is valid
+        :return:
+        """
+        station_name = self._station.value
+        station_info = self.stations.get_station_info(station_name)
+        if not station_info:
+            return False
+
 
     def _load_svepa(self):
         print('Loading SVEPA information')
 
 
-class TransectPreSystemFrame(ColoredFrame, SaveSelection):
+class TransectPreSystemFrame(ColoredFrame, SaveSelection, CommonFrameMethods):
 
     def __init__(self,
                  parent,
@@ -138,7 +205,7 @@ class TransectPreSystemFrame(ColoredFrame, SaveSelection):
 
     def _initiate_frame(self):
         self._transect.values = get_transect_list()
-        self._operator.values = get_operator_list()
+        self._operator.values = self.get_operator_list()
 
     def _on_select_transect(self, *args):
         print(args)
@@ -422,13 +489,6 @@ class FrameManageCTDcastsTransect(ColoredFrame):
         self._update_frame()
 
 
-def get_station_list():
-    """
-    :return: list of strings
-    """
-    return ['BY15', 'BY32']
-
-
 def get_transect_list():
     """
     :return: list of strings
@@ -443,13 +503,6 @@ def get_depth_list():
     :return: list of strings
     """
     return ['0', '5', '10', '15', '20']
-
-
-def get_operator_list():
-    """
-    :return: list of strings
-    """
-    return ['DBSj', 'MHan', 'OBac']
 
 
 def get_nr_of_ticks_list():

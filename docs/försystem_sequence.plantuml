@@ -1,0 +1,80 @@
+@startuml Försystem
+'skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+
+actor User
+participant Cruise
+box "Geografi" #LightGreen
+participant Station
+participant Position
+participant Depth
+participant Distance
+end box
+box "Knappar" #LightBlue
+participant Svepa
+participant Validate
+end box
+database stations 
+database svepa
+database HEJ
+
+== Välj station från lista ==
+User -> Station : Väljer station från lista 
+Station -> stations : Hämtar information om station 
+stations -> Position : Sätter position
+stations -> Depth : Sätter djup
+stations -> Distance : Sätter till 0
+
+
+== Manuell position ==
+User -> Position : Skriver in position
+Position -> Position : Focus out\n(båda ifyllda)
+Position -> stations : Söker efter närmaste station
+    alt Station hittades 
+        stations -> User : Popup: Bekräfta närmaste station 
+        User -> User : Väljer i lista? 
+        stations -> Station : Sätter stationsnamn
+        stations -> Depth : Sätter djup 
+        stations -> Distance : Sätter avstånd till station
+    else Station hittades inte 
+        stations -> User : Popup: Frågar om ny station\n(visar närmaste station)
+        alt Bekräfta ny staion 
+            User -> User : "Yes"
+            Station -> Station : Sätter till <blank>
+            Depth -> Depth : Sätter till <blank>
+            Distance -> Distance : Sätter avstånd till närmaste station?
+            User -> Station : Anger stationsnamn?
+            User -> Depth : Anger djup
+        else Inte ny station 
+            User -> User : "No"
+            Station -> Station : Sätter till <blank>
+            Depth -> Depth : Sätter till <blank>
+            Distance -> Distance : Sätter till <blank>
+
+        end
+    end
+
+
+== Ladda Svepa ==
+User -> Svepa : Trycker på knapp
+Svepa -> svepa : Frågar om information
+svepa -> Cruise : Sätter nr och år
+svepa -> Position : Sätter position
+svepa -> stations : Frågar efter närmaste station
+    alt Station hittades 
+        stations -> Station : Sätter stationsnamn
+        stations -> Depth : Sätter djup 
+        stations -> Distance : Sätter avstånd till station
+    else Station hittades inte
+        Station -> Station : Sätter till <blank>
+        Depth -> Depth : Sätter till <blank>
+        Distance -> Distance : Sätter avstånd till närmaste station?
+    end
+
+
+
+== Validera station ==
+User -> Validate : Trycker på knapp 
+
+
+@enduml

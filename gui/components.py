@@ -6,6 +6,68 @@ from operator import itemgetter
 import sharkpylib.tklib.tkinter_widgets as tkw
 
 
+class AutocompleteCombobox(ttk.Combobox):
+    """
+    https://gist.github.com/victordomingos/3a2a143c573e49308aad392acff25b47
+
+    Subclass of ttk.Combobox that features autocompletion.
+    To cycle through hits use down and up arrow keys.
+    """
+
+    def set_values(self, values):
+        self['values'] = values
+        self._completion_list = values
+        self._hits = []
+        self._hit_index = 0
+        self.position = 0
+        self.bind('<KeyRelease>', self.handle_keyrelease)
+
+    def autocomplete(self, delta=0):
+        """autocomplete the Entry, delta may be 0/1/-1 to cycle through possible hits"""
+        if delta:  # need to delete selection otherwise we would fix the current position
+            self.delete(self.position, tk.END)
+        else:  # set position to end so selection starts where textentry ended
+            self.position = len(self.get())
+        # collect hits
+        _hits = []
+        for element in self._completion_list:
+            if element.lower().startswith(self.get().lower()):
+                _hits.append(element)
+
+        # if we have a new hit list, keep this in mind
+        if _hits != self._hits:
+            self._hit_index = 0
+            self._hits = _hits
+        # only allow cycling if we are in a known hit list
+        if _hits == self._hits and self._hits:
+            self._hit_index = (self._hit_index + delta) % len(self._hits)
+        # now finally perform the auto completion
+        if self._hits:
+            self.delete(0, tk.END)
+            self.insert(0, self._hits[self._hit_index])
+            self.select_range(self.position, tk.END)
+
+    def handle_keyrelease(self, event):
+        """event handler for the keyrelease event on this widget"""
+        if event.keysym == "BackSpace":
+            if self.position < self.index(tk.END):  # delete the selection
+                self.delete(self.position, tk.END)
+            else:
+                self.position = self.index(tk.END)
+        if event.keysym == "Left":
+            if self.position < self.index(tk.END):  # delete the selection
+                self.delete(self.position, tk.END)
+        if event.keysym == "Right":
+            self.position = self.index(tk.END)  # go to end (no selection)
+        if event.keysym == "Down":
+            self.autocomplete(1)  # cycle to next hit
+        if event.keysym == "Up":
+            self.autocomplete(-1)  # cycle to previous hit
+        # perform normal autocomplete if event is a single key or an umlaut
+        if len(event.keysym) == 1:
+            self.autocomplete()
+            
+            
 class MonospaceLabel(tk.Label):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
@@ -81,6 +143,7 @@ class LabelDropdownList(ColoredFrame):
                  title='dropdown list',
                  width=10,
                  state='readonly',
+                 autocomplete=False,
                  **kwargs):
 
         self.grid_frame = {'padx': 5,
@@ -91,10 +154,14 @@ class LabelDropdownList(ColoredFrame):
         self.title = title
         self.width = width
         self.state = state
+        self.autocomplete = autocomplete
+        if self.autocomplete:
+            self.state = 'normal'
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
 
+        self._old_value = None
         self._cb_select = set()
 
         self._create_frame()
@@ -107,20 +174,43 @@ class LabelDropdownList(ColoredFrame):
         MonospaceLabel(self, text=self.title).grid(column=0, padx=5, pady=5, sticky='w')
 
         self.stringvar = tk.StringVar()
-        self.combobox = ttk.Combobox(self, width=self.width, textvariable=self.stringvar, state=self.state)
+        if self.autocomplete:
+            self.combobox = AutocompleteCombobox(self, width=self.width, textvariable=self.stringvar)
+        else:
+            self.combobox = ttk.Combobox(self, width=self.width, textvariable=self.stringvar, state=self.state)
         self.combobox.bind("<<ComboboxSelected>>", self._on_select)
+        self.combobox.bind("<<FocusIn>>", self._on_focus_in)
+        self.combobox.bind("<<FocusOut>>", self._on_focus_out)
         self.combobox.grid(row=0, column=1, padx=5, pady=5, sticky='w')
 
         tkw.grid_configure(self, nr_columns=2)
 
+    def _has_new_value(self):
+        current_value = self.stringvar.get()
+        if current_value == self._old_value:
+            return False
+        self._old_value = current_value
+        return True
+
+    def _on_focus_in(self, *args):
+        self._old_value = self.stringvar.get()
+
+    def _on_focus_out(self, *args):
+        if not self._has_new_value():
+            return
+        self._run_callbacks()
+
     def _on_select(self, *args):
+        if not self._has_new_value():
+            return
+        self._run_callbacks()
+
+    def _run_callbacks(self):
         for func in self._cb_select:
             func()
 
     def add_callback_select(self, func):
         self._cb_select.add(func)
-
-        self.set_values('hej')
 
     @property
     def values(self):
@@ -129,7 +219,10 @@ class LabelDropdownList(ColoredFrame):
     @values.setter
     def values(self, items):
         current_value = self.stringvar.get()
-        self.combobox['values'] = items
+        if self.autocomplete:
+            self.combobox.set_values(items)
+        else:
+            self.combobox['values'] = items
         if current_value not in items:
             self.stringvar.set(items[0])
 
@@ -141,6 +234,89 @@ class LabelDropdownList(ColoredFrame):
     def value(self, item):
         if item in self.combobox['values']:
             self.stringvar.set(item)
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
+
+
+class LabelEntry(ColoredFrame):
+
+    def __init__(self,
+                 parent,
+                 title='double entry',
+                 width=8,
+                 state='normal',
+                 data_type=None,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.title = title
+        self.width = width
+        self.data_type = data_type
+        self.state = state
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._cb = set()
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+
+        self.stringvar = tk.StringVar()
+        # self.stringvar.trace("w", lambda name, index, mode, sv=self.stringvar: self._on_change_entry(sv))
+        self.stringvar.trace("w", self._on_change_entry)
+
+        self.entry = tk.Entry(self, textvariable=self.stringvar, width=self.width)
+        self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.grid(row=0, column=1, **layout)
+        self.entry.configure(state=self.state)
+
+        tkw.grid_configure(self, nr_columns=3)
+
+    def _on_focus_out(self, *args):
+        for func in self._cb:
+            func(self.value)
+
+    def _on_change_entry(self, *args):
+        string = self.stringvar.get()
+        if self.data_type == int:
+            string = ''.join([s for s in string if s.isdigit()])
+            self.stringvar.set(string)
+        elif self.data_type == float:
+            return_list = []
+            for s in string:
+                if s.isdigit():
+                    return_list.append(s)
+                elif s == '.' and '.' not in return_list:
+                    return_list.append(s)
+
+            return_string = ''.join(return_list)
+            self.stringvar.set(return_string)
+
+    def add_callback(self, func):
+        self._cb.add(func)
+
+    @property
+    def value(self):
+        return self.stringvar.get()
+
+    @value.setter
+    def value(self, value):
+        self.stringvar.set(str(value))
+        self._on_change_entry()
 
     def get(self):
         return self.value
@@ -265,7 +441,47 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
         self.second_value = year
 
 
-class VessleLabelDoubleEntry(LabelDoubleEntry):
+class CallbackButton(ColoredFrame):
+
+    def __init__(self,
+                 parent,
+                 title='CallbackButton',
+                 width=8,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.title = title
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._cb = set()
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+
+        self.button = tk.Button(self, text=self.title, command=self._callback)
+        self.button.grid(**layout)
+
+        tkw.grid_configure(self)
+
+    def _callback(self, *args):
+        for func in self._cb:
+            func()
+
+    def add_callback(self, func):
+        self._cb.add(func)
+
+
+class VesselLabelDoubleEntry(LabelDoubleEntry):
 
     def __init__(self, *args, **kwargs):
         if not kwargs.get('title'):
@@ -849,39 +1065,6 @@ class PositionEntries(ColoredFrame):
         new_string = ''.join([s for s in string if s.isdigit()][:6])
         stringvar.set(new_string)
 
-        # current_index = entry.index(tk.INSERT)
-        # chars = '1234567890.'
-        # new_string = ''
-        # count = 0
-        # for s in string:
-        #     if s not in chars:
-        #         current_index -= 1
-        #         continue
-        #     if s == '.':
-        #         if count < 4:
-        #             current_index -= 1
-        #             continue
-        #         if '.' in new_string:
-        #             current_index -= 1
-        #             continue
-        #     new_string += s
-        #     count += 1
-        #     if '.' not in new_string:
-        #         if count == 4:
-        #             new_string += '.'
-        #             count += 1
-        #             current_index += 2
-        #
-        # new_string = new_string[:7]
-        # stringvar.set(new_string)
-        #
-        # print('a:', current_index, len(new_string))
-        # if current_index < len(new_string):
-        #     entry.icursor(current_index - 1)
-        # else:
-        #     entry.icursor(current_index)
-
-
     def _on_focus_in_lat(self, event=None):
         self.entry_lat.selection_range(0, 'end')
 
@@ -891,23 +1074,47 @@ class PositionEntries(ColoredFrame):
     def _on_focus_out_lat(self, event=None):
         string = self.stringvar_lat.get()
         string_list = list(string)
-        string_list.insert(4, '.')
+        string_list.insert(2, '.')
         new_string = ''.join(string_list)
         self.stringvar_lat.set(new_string)
+        self._run_callbacks()
 
     def _on_focus_out_lon(self, event=None):
         string = self.stringvar_lon.get()
         string_list = list(string)
-        string_list.insert(4, '.')
+        string_list.insert(2, '.')
         new_string = ''.join(string_list)
         self.stringvar_lon.set(new_string)
+        self._run_callbacks()
+
+    @property
+    def lat(self):
+        return self.stringvar_lat.get()
+
+    @lat.setter
+    def lat(self, latitude):
+        self.stringvar_lat.set(str(latitude))
+        self._on_focus_out_lat()
+
+    @property
+    def lon(self):
+        return self.stringvar_lon.get()
+
+    @lon.setter
+    def lon(self, longitude):
+        self.stringvar_lon.set(str(longitude))
+        self._on_focus_out_lon()
             
     def get(self):
-        return self.stringvar_lat.get(), self.stringvar_lon.get()
+        return self.lat, self.lon
 
     def set(self, items):
-        self.stringvar_lat.set(items[0])
-        self.stringvar_lon.set(items[1])
+        self.lat = items[0]
+        self.lon = items[1]
+
+    def _run_callbacks(self):
+        for func in self._cb:
+            func()
 
     def add_callback(self, func):
         self._cb.add(func)
