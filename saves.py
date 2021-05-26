@@ -45,8 +45,10 @@ class SaveSelection:
     def save_selection(self):
         data = {}
         for comp in self._selections_to_store:
+            print('comp', comp)
             try:
                 data[comp] = getattr(self, comp).get()
+                print('comp OK')
             except:
                 pass
         self._saves.set(self._saves_id_key, data)

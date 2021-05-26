@@ -1,9 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 
+import datetime
+
+import math
+from pathlib import Path
 from operator import itemgetter
 
 import sharkpylib.tklib.tkinter_widgets as tkw
+
 
 
 class AutocompleteCombobox(ttk.Combobox):
@@ -91,52 +97,7 @@ class ColoredFrame(tk.Frame):
         self.config(bg=color)
 
 
-class LoadSvepaButton(ColoredFrame):
-
-    def __init__(self,
-                 parent,
-                 title='double entry',
-                 width=8,
-                 **kwargs):
-
-        self.grid_frame = {'padx': 5,
-                           'pady': 5,
-                           'sticky': 'nsew'}
-        self.grid_frame.update(kwargs)
-
-        self.title = title
-
-        if type(width) == int:
-            self.width = [width, width]
-        else:
-            self.width = width[:2]
-
-        super().__init__(parent)
-        self.grid(**self.grid_frame)
-
-        self._cb = set()
-
-        self._create_frame()
-
-    def _create_frame(self):
-        layout = dict(padx=5,
-                      pady=5,
-                      sticky='nsew')
-
-        self.button = tk.Button(self, text='Load SVEPA', command=self._callback)
-        self.button.grid(**layout)
-
-        tkw.grid_configure(self)
-
-    def _callback(self, *args):
-        for func in self._cb:
-            func()
-
-    def add_callback(self, func):
-        self._cb.add(func)
-
-
-class LabelDropdownList(ColoredFrame):
+class LabelDropdownList(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -242,11 +203,11 @@ class LabelDropdownList(ColoredFrame):
         self.value = item
 
 
-class LabelEntry(ColoredFrame):
+class LabelEntry(tk.Frame):
 
     def __init__(self,
                  parent,
-                 title='double entry',
+                 title='entry',
                  width=8,
                  state='normal',
                  data_type=None,
@@ -281,6 +242,7 @@ class LabelEntry(ColoredFrame):
 
         self.entry = tk.Entry(self, textvariable=self.stringvar, width=self.width)
         self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.bind('<Return>', self._on_focus_out)
         self.entry.grid(row=0, column=1, **layout)
         self.entry.configure(state=self.state)
 
@@ -325,7 +287,7 @@ class LabelEntry(ColoredFrame):
         self.value = item
 
 
-class LabelDoubleEntry(ColoredFrame):
+class LabelDoubleEntry(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -403,20 +365,24 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
 
     def _modify(self):
         self.stringvar_first.trace("w", lambda name, index, mode, sv=self.stringvar_first: self._on_change_entry(sv))
-        self.stringvar_second.trace("w", lambda name, index, mode, sv=self.stringvar_second: self._on_change_entry(sv))
+        # self.stringvar_second.trace("w", lambda name, index, mode, sv=self.stringvar_second: self._on_change_entry(sv))
         self.entry_first.bind('<FocusIn>', self._on_focus_in_first)
-        self.entry_second.bind('<FocusIn>', self._on_focus_in_second)
+        # self.entry_second.bind('<FocusIn>', self._on_focus_in_second)
+
+        self.stringvar_second.set(str(datetime.datetime.now().year))
+        print('==== SETTIND YEAR')
+        self.entry_second.configure(state='disabled')
 
         self.entry_first.config(width=5)
 
     def _on_change_entry(self, stringvar=None):
         string = self.stringvar_first.get()
         new_string = ''.join([s for s in string if s.isdigit()])
-        self.stringvar_first.set(new_string[:2])
+        self.stringvar_first.set(new_string[:2].zfill(2))
 
         string = self.stringvar_second.get()
         new_string = ''.join([s for s in string if s.isdigit()])
-        self.stringvar_second.set(new_string[:4])
+        self.stringvar_second.set(new_string[:4].zfill(4))
 
     def _on_focus_in_first(self, event=None):
         self.entry_first.selection_range(0, 'end')
@@ -440,8 +406,11 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
     def year(self, year):
         self.second_value = year
 
+    def set(self, item):
+        self.first_value = item[0]
 
-class CallbackButton(ColoredFrame):
+
+class CallbackButton(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -480,6 +449,129 @@ class CallbackButton(ColoredFrame):
     def add_callback(self, func):
         self._cb.add(func)
 
+    def set_state(self, state):
+        self.button.configure(state=state)
+
+
+class DepthEntry(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 width=8,
+                 title='Plot depth',
+                 state='normal',
+                 data_type=None,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.title = title
+        self.width = width
+        self.data_type = data_type
+        self.state = state
+
+        self._bottom_depth_string_base = 'Bottom depth: '
+        self._bottom_depth = None
+        self.step = None
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._cb = set()
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+
+        self.stringvar = tk.StringVar()
+        # self.stringvar.trace("w", lambda name, index, mode, sv=self.stringvar: self._on_change_entry(sv))
+        self.stringvar.trace("w", self._on_change_entry)
+
+        self.entry = tk.Entry(self, textvariable=self.stringvar, width=self.width)
+        self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.grid(row=0, column=1, pady=(5, 0), padx=5, sticky='w')
+        self.entry.configure(state=self.state)
+
+        self.stringvar_bottom_depth = tk.StringVar()
+        tk.Label(self, textvariable=self.stringvar_bottom_depth).grid(row=1, column=1, pady=0, padx=5, sticky='nw')
+
+        tkw.grid_configure(self, nr_columns=2)
+
+    def _on_focus_out(self, *args):
+        for func in self._cb:
+            func(self.value)
+
+    def _on_change_entry(self, *args):
+        string = self.stringvar.get()
+        if self.data_type == int:
+            string = ''.join([s for s in string if s.isdigit()])
+            self.stringvar.set(string)
+        elif self.data_type == float:
+            return_list = []
+            for s in string:
+                if s.isdigit():
+                    return_list.append(s)
+                elif s == '.' and '.' not in return_list:
+                    return_list.append(s)
+
+            return_string = ''.join(return_list)
+            self.stringvar.set(return_string)
+
+    def add_callback(self, func):
+        self._cb.add(func)
+
+    @property
+    def water_depth(self):
+        return self._bottom_depth
+
+    @water_depth.setter
+    def water_depth(self, depth):
+        if depth in ['', None, True, False]:
+            self.value = None
+            self.stringvar_bottom_depth.set(self._bottom_depth_string_base)
+            return
+        self._bottom_depth = depth
+        string = self._bottom_depth_string_base + str(depth)
+        self.stringvar_bottom_depth.set(string)
+        plot_depth = self._get_plot_depth(float(depth))
+        self.value = plot_depth
+
+    @property
+    def value(self):
+        return self.stringvar.get()
+
+    @value.setter
+    def value(self, value):
+        if not value and value is not 0:
+            self.stringvar.set('')
+            return
+        self.stringvar.set(str(value))
+        self._on_change_entry()
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
+
+    def _get_plot_depth(self, water_depth):
+        depth = water_depth + 5
+        if water_depth < 50:
+            self.step = 5
+        elif water_depth < 150:
+            self.step = 10
+        else:
+            self.step = 25
+
+        return (math.ceil(depth / self.step)) * self.step
+
 
 class VesselLabelDoubleEntry(LabelDoubleEntry):
 
@@ -513,10 +605,74 @@ class VesselLabelDoubleEntry(LabelDoubleEntry):
         self.second_value = year
 
 
-class SelectedInstrumentTextFrame(ColoredFrame):
+class SelectDirectory(tk.Frame):
 
     def __init__(self,
                  parent,
+                 title='Directory',
+                 width=40,
+                 state='disabled',
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.title = title
+        self.width = width
+        self.state = state
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._cb = set()
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+#        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+
+        tk.Label(self, text=self.title).grid(row=0, column=0, padx=0, pady=5, sticky='w')
+        self.stringvar = tk.StringVar()
+        self.entry = tk.Entry(self, textvariable=self.stringvar, width=self.width)
+        self.entry.grid(row=1, column=0, **layout)
+        self.entry.configure(state=self.state)
+        self.button = tk.Button(self, text='GET', command=self._on_button_pres)
+        self.button.grid(row=1, column=1, **layout)
+
+        tkw.grid_configure(self, nr_rows=2, nr_columns=2)
+
+    def _on_button_pres(self):
+        directory = filedialog.askdirectory()
+        if not directory:
+            return
+        self.stringvar.set(directory)
+
+    @property
+    def directory(self):
+        return self.stringvar.get()
+
+    def get(self):
+        return self.directory
+
+    def set(self, path):
+        path = Path(path)
+        if not path.exists():
+            return
+        if path.is_file():
+            path = path.parent
+        self.stringvar.set(str(path))
+
+
+class SelectedInstrumentTextFrame(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 controller,
                  **kwargs):
 
         self.grid_frame = {'padx': 5,
@@ -526,6 +682,8 @@ class SelectedInstrumentTextFrame(ColoredFrame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
+
+        self.controller = controller
 
         self._instrument_type = 'CTD'
         self.__instrument_name = ''
@@ -544,7 +702,7 @@ class SelectedInstrumentTextFrame(ColoredFrame):
         self._set_text()
 
     def _set_text(self):
-        string = f'Vald {self._instrument_type}: {self.__instrument_name}'
+        string = f'Vald {self._instrument_type}: {self.instrument} ({self.controller.get_instrument_serial_number(self.instrument)})'
         self.stringvar.set(string)
 
     def get(self):
@@ -554,7 +712,7 @@ class SelectedInstrumentTextFrame(ColoredFrame):
         self.instrument = item
 
 
-class SeriesEntryPicker(ColoredFrame):
+class SeriesEntryPicker(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -626,6 +784,8 @@ class SeriesEntryPicker(ColoredFrame):
 
     def _on_focus_out(self, event=None):
         string = self.stringvar.get()
+        if not string:
+            return
         num = int(''.join([s for s in string if s.isdigit()]))
         if num < 1:
             num = 1
@@ -672,7 +832,7 @@ class SeriesEntryPicker(ColoredFrame):
         self.value = item
 
 
-class SurfaceSoakSelector(ColoredFrame):
+class SurfaceSoakSelector(tk.Frame):
 
     def __init__(self,
                 parent,
@@ -753,7 +913,7 @@ class SurfaceSoakSelector(ColoredFrame):
         self.surfacesoak = item
 
 
-class SensorTable(ColoredFrame):
+class SensorTableOld(tk.Frame):
 
     def __init__(self,
                 parent,
@@ -954,7 +1114,137 @@ class SensorTable(ColoredFrame):
             self.combobox_status[i].configure(state='disabled')
 
 
-class LabelCheckbox(ColoredFrame):
+class SensorTable(tk.Frame):
+
+    def __init__(self,
+                parent,
+                controller,
+                ** kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self.controller = controller
+
+        self._data = {}
+        self.__instrument = None
+        self._current_instrument_data = {}
+        self._current_sort_par = None
+
+        self._cb = set()
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=2,
+                      sticky='nsew')
+
+
+        column_width = [25, 15]
+
+        tk.Button(self, text='Parameter', width=column_width[0], state='disabled', command=lambda x='parameter': self._sort_by(x)).grid(row=0, column=0, **layout)
+        tk.Button(self, text='Serial Number', width=column_width[1], state='disabled', command=lambda x='serial_number': self._sort_by(x)).grid(row=0, column=1, **layout)
+
+        self.stringvar_par = []
+        self.stringvar_serial_number = []
+
+        for i in range(20):
+            par = tk.StringVar()
+            sensor_id = tk.StringVar()
+
+            tk.Entry(self, textvariable=par, width=column_width[0], state='disabled').grid(row=i+1, column=0, **layout)
+            tk.Entry(self, textvariable=sensor_id, width=column_width[1], state='disabled').grid(row=i+1, column=1, **layout)
+
+            self.stringvar_par.append(par)
+            self.stringvar_serial_number.append(sensor_id)
+
+        tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!',
+                  command=self._continue).grid(row=i+2, column=0, columnspan=2, **layout)
+
+        tkw.grid_configure(self, nr_rows=i+3)
+
+    def _continue(self):
+        for func in self._cb:
+            func()
+
+    def add_callback(self, func):
+        self._cb.add(func)
+
+    def get(self):
+        """
+        :return: {'instrument: str,
+                  'sort_par: str}
+        """
+        if not self._data:
+            return
+        return_info = {'instrument': self.__instrument,
+                       'sort_par': self._current_sort_par}
+        return return_info
+
+    def set(self, info):
+        """
+        Expects: {'instrument: str,
+                  'sort: str}
+        :return:
+        """
+        if not self._data:
+            return
+        self._current_sort_par = info.get('sort_par', 'serial_number')
+        self.instrument = info.get('instrument', self.__instrument)
+
+    @property
+    def instrument(self):
+        return self.__instrument
+
+    @instrument.setter
+    def instrument(self, instrument):
+        if instrument == self.__instrument:
+            pass
+
+    def _get_sorted_list_by(self, key=None):
+        if not self._current_instrument_data:
+            return
+        self._current_sort_par = key
+        if not key or key == 'serial_number':
+            return sorted(self._current_instrument_data)
+        id_list = list(self._current_instrument_data)
+        value_list = [self._current_instrument_data[_id].get(key, '') for _id in self._current_instrument_data.keys()]
+        sorted_id_list, sorted_value_list = list(zip(*sorted(zip(id_list, value_list), key=itemgetter(1))))
+        return sorted_id_list
+
+    def _sort_by(self, key=None):
+        self._clear_widget()
+        self._sort_by_id_list(self._get_sorted_list_by(key))
+
+    def _sort_by_id_list(self, id_list):
+        for i, _id in enumerate(id_list):
+            self.stringvar_par[i].set(self._data[_id]['parameter'])
+            self.stringvar_serial_number[i].set(self._data[_id]['serial_number'])
+
+    def update_data(self, data):
+        """
+        :param data:
+        :return:
+        """
+        self._data = data
+        self._clear_widget()
+        for i, info in enumerate(data):
+            self.stringvar_par[i].set(info.get('parameter', ''))
+            self.stringvar_serial_number[i].set(info.get('serial_number', ''))
+
+    def _clear_widget(self):
+        for i in range(len(self.stringvar_par)):
+            self.stringvar_par[i].set('')
+            self.stringvar_serial_number[i].set('')
+
+
+class LabelCheckbox(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -1002,7 +1292,7 @@ class LabelCheckbox(ColoredFrame):
         self._cb.add(func)
 
 
-class PositionEntries(ColoredFrame):
+class PositionEntries(tk.Frame):
 
     def __init__(self,
                  parent,
@@ -1094,7 +1384,7 @@ class PositionEntries(ColoredFrame):
     @lat.setter
     def lat(self, latitude):
         self.stringvar_lat.set(str(latitude))
-        self._on_focus_out_lat()
+        # self._on_focus_out_lat()
 
     @property
     def lon(self):
@@ -1103,7 +1393,7 @@ class PositionEntries(ColoredFrame):
     @lon.setter
     def lon(self, longitude):
         self.stringvar_lon.set(str(longitude))
-        self._on_focus_out_lon()
+        # self._on_focus_out_lon()
             
     def get(self):
         return self.lat, self.lon
@@ -1118,5 +1408,4 @@ class PositionEntries(ColoredFrame):
 
     def add_callback(self, func):
         self._cb.add(func)
-
 
