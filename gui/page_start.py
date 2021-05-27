@@ -41,35 +41,24 @@ class PageStart(tk.Frame):
     def startup(self):
         self._create_frame()
 
+        self.controller.ctd_config_root_directory = self._frame_select_instrument.config_root_directory
+        self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory
+
     def close(self):
-        self._frame_select_instrument.save_selection()
         self._frame_manage_ctd_casts.save_selection()
-        # self._frame_start_up.save_selection()
 
     def update_page(self):
         pass
-        # file_path = Path(Path(__file__).parent.parent, 'temp_files', 'Instruments.xlsx')
-        # instrument = InstrumentFile(file_path)
-        # self._frame_start_up.update_sbe_instrument_info(instrument.sbe_instrument_info)
 
     def _create_frame(self):
 
-        self.notebook = tkw.NotebookWidget(self, frames=['Välj CTD', 'Sensorer', 'Försystem (Inför station / På station)'], place=(.5, .5))
+        self.notebook = tkw.NotebookWidget(self, frames=['Välj CTD', 'Försystem (Inför station / På station)'], place=(.5, .5))
         self.notebook.set_state('normal', 'Välj CTD', rest='disabled')
         layout = dict(padx=20, pady=20, sticky='nsew')
 
         self._frame_select_instrument = frames.FrameSelectInstrument(self.notebook.get_frame('Välj CTD'), self.controller)
         self._frame_select_instrument.grid(row=0, column=0, **layout)
-        self._frame_select_instrument.add_callback(self._on_instrument_select)
-
-        self._frame_sensors = frames.FrameSensors(self.notebook.get_frame('Sensorer'), self.controller)
-        self._frame_sensors.grid(row=0, column=0, **layout)
-        self._frame_sensors.controller = self.controller
-        self._frame_sensors.add_callback(self._on_confirm_sensors)
-
-        # self._frame_start_up = frames.FrameStartUp(self.notebook.get_frame('Uppstart ombord'), self.controller)
-        # self._frame_start_up.grid(row=0, column=0, **layout)
-        # self._frame_start_up.controller = self.controller
+        self._frame_select_instrument.add_callback(self._on_confirm_sensors)
 
         self._update_frame_manage_ctd_casts()
 
@@ -99,13 +88,7 @@ class PageStart(tk.Frame):
             self._frame_manage_ctd_casts.grid(row=0, column=1, **layout)
 
     def _on_confirm_sensors(self):
-        self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
-        self.notebook.select_frame('Försystem (Inför station / På station)')
-
-    def _on_instrument_select(self, info):
-        # instrument = self._frame_select_instrument.instrument
-        # root_directory = self._frame_select_instrument.root_directory
-        instrument = info.get('instrument', None)
+        instrument = self._frame_select_instrument.instrument
         if not instrument:
             return
         if instrument == self._current_instrument:
@@ -114,13 +97,6 @@ class PageStart(tk.Frame):
 
         self._update_frame_manage_ctd_casts()
 
-        self._frame_sensors.instrument = instrument
-        self._frame_select_instrument.instrument = instrument
-        # self._frame_manage_ctd_casts.instrument = instrument
-        # self._frame_start_up.instrument = instrument
-
-        self._frame_sensors.update_instrument_info(self.controller.get_sensor_info_in_xmlcon(self._current_instrument))
-
-        self.notebook.set_state('normal', 'Sensorer')
-        self.notebook.select_frame('Sensorer')
+        self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
+        self.notebook.select_frame('Försystem (Inför station / På station)')
 
