@@ -141,7 +141,7 @@ Validate -> GUI_fält_2: Validera inmatade info?
     GUI_fält_2 -> Config: Sätt CTD-operatör i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt filnamn (SBE09_1387_20200207_0801_77_SE_01_0120.hex) PSA-fil
     else info ej ok
-    Validate -> GUI_fält_2: Ge felmeddelande. Ange vad som behöver justeras. 
+    Validate -> GUI_fält_2: Ge felmeddelande. Ange vad som behöver justeras. Markera fält
     end
 
 @enduml
