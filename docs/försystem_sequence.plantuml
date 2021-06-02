@@ -17,7 +17,7 @@ participant Station
 participant Position
 participant Depth
 participant Distance
-participant Operator
+
 end box
 box "Inför/På Station: Visa" #GreenYellow
 participant GUI_fält_2
@@ -59,18 +59,20 @@ Serie -> "Data Scifi01": Kolla om serienummret redan finns.
     alt Serien hittades inte
         "Data Scifi01"-> GUI_fält_2: Unik serie, sätt serienr. 
         else Serien finns redan
-        "Data Scifi01"-> GUI_fält_2: Felmeddelane. Serien finns redan.
+        "Data Scifi01"-> GUI_fält_2: Felmeddelane. Serien finns redan. Kan ej gå vidare.
     end
 
+alt Välj Station i Listan
+    User -> Station : Väljer station från lista 
+    Station -> stations : Hämtar information om station 
+    stations -> GUI_fält_2 : Sätter nominell pos
+    stations -> GUI_fält_2 : Sätter djup
+else Skriv in stationsnamn (Extra station/Fiske)
+    GUI_fält_2 -> GUI_fält_2 : Stationsnamn (fritext)
+    GUI_fält_2 -> GUI_fält_2 : Sätter djup (heltal, 0-1000)
+end    
 
-
-"Data Scifi01"-> GUI_fält_2: Ge felmeddelande om serienummret redan finns. 
-User -> Station : Väljer station från lista 
-Station -> stations : Hämtar information om station 
-stations -> GUI_fält_2 : Sätter nominell pos
-stations -> GUI_fält_2 : Sätter djup
-User -> Operator: Ange CTD-operatör
-
+User -> GUI_fält_2: Ange CTD-operatör, ingen kontroll (fritext, 5 tecken)
 
 == Manuell position ==
 User -> Position : Skriver in position
@@ -101,26 +103,45 @@ Position -> stations : Söker efter närmaste station
     end
 
 
-== Ladda Svepa ==
+== Ladda Svepa  ==
 User -> Svepa : Trycker på knapp
 Svepa -> svepa : Frågar om information
-svepa -> Cruise : Sätter nr och år
-svepa -> Position : Sätter position
-svepa -> stations : Frågar efter närmaste station
-    alt Station hittades 
-        stations -> Station : Sätter stationsnamn
-        stations -> Depth : Sätter djup 
-        stations -> Distance : Sätter avstånd till station
-    else Station hittades inte
-        Station -> Station : Sätter till <blank>
-        Depth -> Depth : Sätter till <blank>
-        Distance -> Distance : Sätter avstånd till närmaste station?
+    alt Svepa är startad
+    svepa -> Cruise : Sätter nr och år
+    svepa -> Position : Sätter position
+    svepa -> stations : Frågar efter närmaste station
+        alt Station hittades 
+            stations -> Station : Sätter stationsnamn
+            stations -> Depth : Sätter djup 
+            stations -> Distance : Sätter avstånd till station
+        else Station hittades inte
+            Station -> Station : Sätter till <blank>
+            Depth -> Depth : Sätter till <blank>
+            Distance -> Distance : Sätter avstånd till närmaste station?
+        end
+    else Svepa är inte startad
+    svepa -> GUI_fält_2: Ge felmeddelande att Svepa inte är startad. 
+    else Ingen kontakt med Svepa
+    svepa -> GUI_fält_2: Ge felmeddelande att kontakt m Svepa saknas. Fyll i stationsinfo manuellt. 
     end
-
 
 
 == Validera station ==
 User -> Validate : Trycker på knapp 
+Validate -> GUI_fält_2: Vad skall valideras? Position och djup? Skall validering ske när man klickar SeaSave?
 
+== Starta SeaSave ==
+User -> Seasave: Klicka SeaSave
+Validate -> GUI_fält_2: Validera inmatade info?
+    alt Om info OK uppdatera Seasave PSA-fil och starta Seasave
+    GUI_fält_2 -> Config: Sätt År-Fartyg-Cruisenr i seasave PSA-fil
+    GUI_fält_2 -> Config: Sätt Serienr i seasave PSA-fil
+    GUI_fält_2 -> Config: Sätt Stationsnamn i seasave PSA-fil
+    GUI_fält_2 -> Config: Sätt Depth och Y-tick i seasave PSA-fil
+    GUI_fält_2 -> Config: Sätt CTD-operatör i seasave PSA-fil
+    GUI_fält_2 -> Config: Sätt filnamn (SBE09_1387_20200207_0801_77_SE_01_0120.hex) PSA-fil
+    else info ej ok
+    Validate -> GUI_fält_2: Ge felmeddelande. Ange vad som behöver justeras. 
+    end
 
 @enduml
