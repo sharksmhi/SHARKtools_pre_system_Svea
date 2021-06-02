@@ -1,0 +1,642 @@
+@startuml
+
+title SHARKtools_pre_system_Svea_class_diagram
+
+class Controller  {
+	
+==
+	
+}
+
+class app.App #DE657F {
+	+active_page
+	+admin_mode
+	+all_ok
+	+container
+	+frames
+	+info_popup
+	+latest_loaded_sampling_type
+	+logger
+	+main_app
+	+page_history
+	+pages_started
+	+parent
+	+paths
+	+plugin_directory
+	+previous_page
+	+progress_running
+	+progress_running_toplevel
+	+root_directory
+	+titles
+	+user, @p
+	+user_manager
+	+version
+==
+	+close()
+	+goto_previous_page()
+	+previous_page()
+	+show_frame()
+	+startup()
+	+startup_pages()
+	+update_all()
+	+update_app()
+	+update_page()
+	-_create_titles()
+	-_get_title()
+	-_set_frame()
+	-_set_load_frame()
+}
+
+class components.AutocompleteCombobox #FC85E0 {
+	+position
+	-_completion_list
+	-_hit_index
+	-_hits
+==
+	+autocomplete()
+	+handle_keyrelease()
+	+set_values()
+}
+
+class components.CallbackButton #FC85E0 {
+	+button
+	+grid_frame
+	+title
+	-_cb
+==
+	+add_callback()
+	+set_state()
+	-_callback()
+	-_create_frame()
+}
+
+class components.ColoredFrame #FC85E0 {
+	
+==
+	+set_fill_color()
+	+set_frame_color()
+	+set_frame_thickness()
+}
+
+class components.CruiseLabelDoubleEntry #FC85E0 {
+	+first_value
+	+nr, @p
+	+second_value
+	+year, @p
+==
+	-_modify()
+	-_on_change_entry()
+	-_on_focus_in_first()
+	-_on_focus_in_second()
+}
+
+class components.DepthEntry #FC85E0 {
+	+data_type
+	+entry
+	+grid_frame
+	+state
+	+step
+	+stringvar
+	+stringvar_bottom_depth
+	+title
+	+value
+	+value, @p
+	+water_depth, @p
+	+width
+	-_bottom_depth
+	-_bottom_depth_string_base
+	-_cb
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_get_plot_depth()
+	-_on_change_entry()
+	-_on_focus_out()
+}
+
+class components.LabelCheckbox #FC85E0 {
+	+checkbutton
+	+grid_frame
+	+intvar
+	+title
+	-_cb
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_on_toggle()
+}
+
+class components.LabelDoubleEntry #FC85E0 {
+	+entry_first
+	+entry_second
+	+first_value
+	+first_value, @p
+	+grid_frame
+	+second_value
+	+second_value, @p
+	+stringvar_first
+	+stringvar_second
+	+title
+	+width
+	-_cb
+==
+	+get()
+	+set()
+	-_create_frame()
+}
+
+class components.LabelDropdownList #FC85E0 {
+	+autocomplete
+	+combobox
+	+grid_frame
+	+state
+	+stringvar
+	+title
+	+value
+	+value, @p
+	+values, @p
+	+width
+	-_cb_select
+	-_old_value
+==
+	+add_callback_select()
+	+get()
+	+set()
+	-_create_frame()
+	-_has_new_value()
+	-_on_focus_in()
+	-_on_focus_out()
+	-_on_select()
+	-_run_callbacks()
+}
+
+class components.LabelEntry #FC85E0 {
+	+data_type
+	+entry
+	+grid_frame
+	+state
+	+stringvar
+	+title
+	+value
+	+value, @p
+	+width
+	-_cb
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_on_change_entry()
+	-_on_focus_out()
+}
+
+class components.MonospaceLabel #FC85E0 {
+	
+==
+	
+}
+
+class components.PositionEntries #FC85E0 {
+	+entry_lat
+	+entry_lon
+	+grid_frame
+	+lat
+	+lat, @p
+	+lon
+	+lon, @p
+	+stringvar_lat
+	+stringvar_lon
+	+width
+	-_cb
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_on_change_entry()
+	-_on_change_entry_lat()
+	-_on_change_entry_lon()
+	-_on_focus_in_lat()
+	-_on_focus_in_lon()
+	-_on_focus_out_lat()
+	-_on_focus_out_lon()
+	-_run_callbacks()
+}
+
+class components.SelectDirectory #FC85E0 {
+	+button
+	+directory, @p
+	+entry
+	+grid_frame
+	+state
+	+stringvar
+	+title
+	+width
+	-_cb
+==
+	+get()
+	+set()
+	-_create_frame()
+	-_on_button_pres()
+}
+
+class components.SelectedInstrumentTextFrame #FC85E0 {
+	+grid_frame
+	+instrument
+	+instrument, @p
+	+stringvar
+	-__instrument_name
+	-_instrument_type
+==
+	+get()
+	+set()
+	-_set_text()
+}
+
+class components.SensorTable #FC85E0 {
+	+combobox_instrument
+	+combobox_status
+	+grid_frame
+	+instrument
+	+instrument, @p
+	+stringvar_instrument
+	+stringvar_par
+	+stringvar_sensor_id
+	+stringvar_status
+	-_current_instrument
+	-_current_instrument_data
+	-_current_sort_par
+	-_data
+	-_instrument_list
+==
+	+get()
+	+set()
+	+update_data()
+	-_clear_widget()
+	-_create_frame()
+	-_get_sorted_list_by()
+	-_on_change_status()
+	-_on_select_instrument()
+	-_sort_by()
+	-_sort_by_id_list()
+}
+
+class components.SeriesEntryPicker #FC85E0 {
+	+button_down
+	+button_up
+	+entry
+	+grid_frame
+	+include_arrows
+	+stringvar
+	+title
+	+value
+	+value, @p
+	+width
+	-_cb
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_on_button_down()
+	-_on_button_up()
+	-_on_change_entry()
+	-_on_focus_in()
+	-_on_focus_out()
+}
+
+class components.SurfaceSoakSelector #FC85E0 {
+	+button_selected_color
+	+button_unselected_color
+	+buttons
+	+grid_frame
+	+surfacesoak
+	+surfacesoak, @p
+	-_cb
+	-_selected
+==
+	+add_callback()
+	+get()
+	+set()
+	-_create_frame()
+	-_deselect()
+	-_on_select_button()
+	-_select()
+}
+
+class components.VesselLabelDoubleEntry #FC85E0 {
+	+code, @p
+	+first_value
+	+name, @p
+	+second_value
+==
+	-_modify()
+}
+
+class frames.ColoredFrame #781051 {
+	
+==
+	+set_fill_color()
+	+set_frame_color()
+	+set_frame_thickness()
+}
+
+class frames.CommonFrameMethods #781051 {
+	
+==
+	+get_operator_list()
+	+get_station_list()
+}
+
+class frames.FrameManageCTDcastsStation #781051 {
+	+content_frame
+	+controller, @p
+	+instrument, @p
+	+instrument_text_frame
+	-__controller
+	-__instrument
+==
+	+save_selection()
+	-_build_frame()
+	-_update_frame()
+}
+
+class frames.FrameManageCTDcastsTransect #781051 {
+	+content_frame
+	+instrument, @p
+	+instrument_text_frame
+	-__instrument
+==
+	+save_selection()
+	-_build_frame()
+	-_update_frame()
+}
+
+class frames.FrameProcessing #781051 {
+	+content_frame
+	+instrument, @p
+	+instrument_text_frame
+	-__instrument
+==
+	+save_selection()
+	-_build_frame()
+	-_update_frame()
+}
+
+class frames.FrameSelectInstrument #781051 {
+	+button_selected_color
+	+button_unselected_color
+	+buttons
+	+directory
+	+instrument, @p
+	-_cb_instrument_select
+	-_instrument_type
+	-_selected
+==
+	+add_callback_instrument_select()
+	+save_selection()
+	-_build_frame()
+	-_deselect()
+	-_on_select_instrument()
+	-_select()
+}
+
+class frames.FrameStartUp #781051 {
+	+instrument, @p
+	-__instrument
+	-_selections_to_store
+	-_sensor_table
+==
+	+update_sbe_instrument_info()
+	-_build_frame()
+	-_update_frame()
+}
+
+class frames.ProcessingFrame #781051 {
+	+grid_frame
+	-_saves_id_key
+	-_selections_to_store
+==
+	-_build_frame()
+}
+
+class frames.StationPreSystemFrame #781051 {
+	+controller
+	+grid_frame
+	-_bin_size
+	-_cruise
+	-_depth
+	-_distance
+	-_operator
+	-_position
+	-_saves_id_key
+	-_seasave
+	-_selections_to_store
+	-_series
+	-_station
+	-_svepa
+	-_validate
+	-_vessel
+==
+	+get_nr_bins()
+	-_build_frame()
+	-_initiate_frame()
+	-_is_validate_station_name()
+	-_load_svepa()
+	-_on_select_bin_size()
+	-_on_select_depth()
+	-_on_select_lat_lon()
+	-_on_select_station()
+	-_run_seasave()
+	-_validate_all()
+}
+
+class frames.TransectPreSystemFrame #781051 {
+	+grid_frame
+	-_cruise
+	-_new_transect
+	-_operator
+	-_saves_id_key
+	-_selections_to_store
+	-_series
+	-_transect
+	-_vessel
+==
+	-_build_frame()
+	-_initiate_frame()
+	-_on_select_transect()
+}
+
+class page_start.PageStart #DDBDFD {
+	+controller
+	+notebook
+	+parent
+	+parent_app
+	+user, @p
+	-_current_instrument
+	-_frame_manage_ctd_casts
+	-_frame_select_instrument
+	-_frame_start_up
+	-_station_instruments
+	-_transect_instruments
+==
+	+close()
+	+startup()
+	+update_page()
+	-_create_frame()
+	-_on_instrument_select()
+	-_update_frame_manage_ctd_casts()
+}
+
+class saves.SaveSelection #48764A {
+	
+==
+	+load_selection()
+	+save_selection()
+}
+
+class saves.Saves #48764A {
+	+data
+	+file_path
+==
+	+get()
+	+set()
+	-_load()
+	-_save()
+}
+
+class test_scrollbar.messageList #D53DF1 {
+	+innerFrame
+	+placeholder
+	+scrollFrame
+	+widget_list
+==
+	+add_message()
+	+del_message()
+}
+
+class test_scrollbar.scrollingFrame #D53DF1 {
+	+canvas
+	+frame
+	+hsb
+	+vsb
+	+window
+==
+	+onCanvasConfigure()
+	+onFrameConfigure()
+}
+
+
+app.App <|-- PluginApp
+
+test_scrollbar.scrollingFrame <|-- Frame
+
+test_scrollbar.messageList <|-- object
+
+
+
+
+
+
+
+components.CruiseLabelDoubleEntry <|-- components.LabelDoubleEntry
+
+
+
+components.VesselLabelDoubleEntry <|-- components.LabelDoubleEntry
+
+
+
+
+
+
+
+
+
+frames.StationPreSystemFrame <|-- SaveSelection
+frames.StationPreSystemFrame <|-- frames.CommonFrameMethods
+frames.StationPreSystemFrame <|-- saves.SaveSelection
+
+frames.TransectPreSystemFrame <|-- SaveSelection
+frames.TransectPreSystemFrame <|-- frames.CommonFrameMethods
+frames.TransectPreSystemFrame <|-- saves.SaveSelection
+
+frames.ProcessingFrame <|-- SaveSelection
+frames.ProcessingFrame <|-- saves.SaveSelection
+
+
+
+frames.FrameStartUp <|-- SaveSelection
+frames.FrameStartUp <|-- saves.SaveSelection
+
+
+
+
+app.App o-- app.App
+
+saves.SaveSelection o-- saves.Saves
+
+test_scrollbar.messageList o-- test_scrollbar.scrollingFrame
+test_scrollbar.messageList o-- test_scrollbar.messageList
+
+components.LabelDropdownList o-- components.MonospaceLabel
+components.LabelDropdownList o-- components.AutocompleteCombobox
+
+components.LabelEntry o-- components.MonospaceLabel
+
+components.LabelDoubleEntry o-- components.MonospaceLabel
+
+components.DepthEntry o-- components.MonospaceLabel
+
+components.SelectedInstrumentTextFrame o-- components.MonospaceLabel
+
+components.SeriesEntryPicker o-- components.MonospaceLabel
+
+components.SurfaceSoakSelector o-- components.MonospaceLabel
+
+components.LabelCheckbox o-- components.MonospaceLabel
+
+components.PositionEntries o-- components.MonospaceLabel
+components.PositionEntries o-- components.MonospaceLabel
+
+frames.FrameProcessing o-- frames.ProcessingFrame
+frames.FrameProcessing o-- components.SelectedInstrumentTextFrame
+
+frames.FrameManageCTDcastsStation o-- frames.StationPreSystemFrame
+frames.FrameManageCTDcastsStation o-- components.SelectedInstrumentTextFrame
+
+frames.FrameManageCTDcastsTransect o-- frames.TransectPreSystemFrame
+frames.FrameManageCTDcastsTransect o-- components.SelectedInstrumentTextFrame
+
+page_start.PageStart o-- Controller
+page_start.PageStart o-- app.App
+page_start.PageStart o-- frames.FrameSelectInstrument
+page_start.PageStart o-- frames.FrameStartUp
+page_start.PageStart o-- frames.FrameManageCTDcastsStation
+page_start.PageStart o-- frames.FrameManageCTDcastsTransect
+
+frames.StationPreSystemFrame o-- components.CruiseLabelDoubleEntry
+frames.StationPreSystemFrame o-- components.LabelDoubleEntry
+frames.StationPreSystemFrame o-- components.SeriesEntryPicker
+frames.StationPreSystemFrame o-- components.LabelDropdownList
+frames.StationPreSystemFrame o-- components.LabelEntry
+frames.StationPreSystemFrame o-- components.DepthEntry
+frames.StationPreSystemFrame o-- components.VesselLabelDoubleEntry
+frames.StationPreSystemFrame o-- components.CallbackButton
+frames.StationPreSystemFrame o-- components.PositionEntries
+
+frames.TransectPreSystemFrame o-- components.CruiseLabelDoubleEntry
+frames.TransectPreSystemFrame o-- components.LabelDoubleEntry
+frames.TransectPreSystemFrame o-- components.SeriesEntryPicker
+frames.TransectPreSystemFrame o-- components.LabelDropdownList
+frames.TransectPreSystemFrame o-- components.LabelCheckbox
+
+frames.FrameSelectInstrument o-- components.SelectDirectory
+
+frames.FrameStartUp o-- components.SensorTable
+
+@enduml

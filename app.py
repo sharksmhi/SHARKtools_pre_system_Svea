@@ -25,7 +25,7 @@ class App(PluginApp):
     """
     """
     def __init__(self, parent, main_app, **kwargs):
-        PluginApp.__init__(self, parent, main_app, **kwargs)
+        super().__init__(parent, main_app, **kwargs)
         # parent is the frame "container" in App. contoller is the App class
         self.parent = parent
         self.main_app = main_app

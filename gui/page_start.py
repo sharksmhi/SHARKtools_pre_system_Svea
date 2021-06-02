@@ -14,6 +14,8 @@ from pathlib import Path
 
 from . import components
 
+from pre_system_svea.controller import Controller
+
 from ctd_processing.sensor_info import InstrumentFile
 
 
@@ -30,6 +32,8 @@ class PageStart(tk.Frame):
 
         self._current_instrument = None
 
+        self.controller = Controller()
+
     @property
     def user(self):
         return self.parent_app.user
@@ -37,31 +41,28 @@ class PageStart(tk.Frame):
     def startup(self):
         self._create_frame()
 
+        self.controller.ctd_config_root_directory = self._frame_select_instrument.config_root_directory
+        self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory
+
     def close(self):
         self._frame_manage_ctd_casts.save_selection()
-        self._frame_start_up.save_selection()
 
     def update_page(self):
-        file_path = Path(Path(__file__).parent.parent, 'temp_files','Instruments.xlsx')
-        instrument = InstrumentFile(file_path)
-        self._frame_start_up.update_sbe_instrument_info(instrument.sbe_instrument_info)
+        pass
 
     def _create_frame(self):
 
-        self.notebook = tkw.NotebookWidget(self, frames=['Välj CTD', 'Uppstart ombord', 'Försystem (Inför station / På station)'], place=(.5, .5))
+        self.notebook = tkw.NotebookWidget(self, frames=['Välj CTD', 'Försystem (Inför station / På station)'], place=(.5, .5))
+        self.notebook.set_state('normal', 'Välj CTD', rest='disabled')
         layout = dict(padx=20, pady=20, sticky='nsew')
 
-        self._frame_select_instrument = frames.FrameSelectInstrument(self.notebook.get_frame('Välj CTD'))
+        self._frame_select_instrument = frames.FrameSelectInstrument(self.notebook.get_frame('Välj CTD'), self.controller)
         self._frame_select_instrument.grid(row=0, column=0, **layout)
-        self._frame_select_instrument.add_callback_instrument_select(self._on_instrument_select)
-        self._frame_select_instrument.set_frame_color('green')
-
-        self._frame_start_up = frames.FrameStartUp(self.notebook.get_frame('Uppstart ombord'))
-        self._frame_start_up.grid(row=0, column=0, **layout)
+        self._frame_select_instrument.add_callback(self._on_confirm_sensors)
 
         self._update_frame_manage_ctd_casts()
 
-        self._on_instrument_select('SBE09')
+        self.notebook.select_frame('Välj CTD')
 
     def _update_frame_manage_ctd_casts(self):
         frame = self.notebook.get_frame('Försystem (Inför station / På station)')
@@ -73,24 +74,29 @@ class PageStart(tk.Frame):
             pass
 
         if self._current_instrument in self._station_instruments:
-            self._frame_manage_ctd_casts = frames.FrameManageCTDcastsStation(frame)
+            self._frame_manage_ctd_casts = frames.FrameManageCTDcastsStation(frame, self.controller)
             self._frame_manage_ctd_casts.grid(row=0, column=1, **layout)
-            self._frame_manage_ctd_casts.instrument = 'SBE09'
+            self._frame_manage_ctd_casts.instrument = self._current_instrument
 
         elif self._current_instrument in self._transect_instruments:
-            self._frame_manage_ctd_casts = frames.FrameManageCTDcastsTransect(frame)
+            self._frame_manage_ctd_casts = frames.FrameManageCTDcastsTransect(frame, self.controller)
             self._frame_manage_ctd_casts.grid(row=1, column=1, **layout)
-            self._frame_manage_ctd_casts.instrument = 'MVP200'
-            # self._frame_manage_ctd_casts.set_frame_color('green')
+            self._frame_manage_ctd_casts.instrument = self._current_instrument
 
-    def _on_instrument_select(self, instrument):
+        else:
+            self._frame_manage_ctd_casts = frames.FrameManageCTDcastsStation(frame, self.controller)
+            self._frame_manage_ctd_casts.grid(row=0, column=1, **layout)
+
+    def _on_confirm_sensors(self):
+        instrument = self._frame_select_instrument.instrument
+        if not instrument:
+            return
         if instrument == self._current_instrument:
             return
         self._current_instrument = instrument
 
         self._update_frame_manage_ctd_casts()
 
-        self._frame_select_instrument.instrument = instrument
-        self._frame_manage_ctd_casts.instrument = instrument
-        self._frame_start_up.instrument = instrument
+        self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
+        self.notebook.select_frame('Försystem (Inför station / På station)')
 

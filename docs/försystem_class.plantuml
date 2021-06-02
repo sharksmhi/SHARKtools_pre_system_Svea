@@ -1,0 +1,322 @@
+@startuml 
+skinparam Style strictuml
+
+class frames_ColoredFrame {
+    +set_frame_color()
+    +set_frame_thickness()
+    +set_fill_color()
+}
+
+
+class frames_CommonFrameMethods {
+    -operators
+    -stations
+    --
+    +get_operator_list()
+    +get_station_list()
+}
+
+class frames_StationPreSystemFrame {
+    -_build_frame() 
+    -_initiate_frame()
+    -_on_select_station()
+    -_on_select_lat_lon()
+    -_on_select_bin_size()
+    +get_nr_bins()
+    -_validate_all()
+    -_run_seasave()
+    -_subprocess_seasave()
+    -_is_validate_station_name()
+    -_load_svepa()
+}
+
+class frames_TransectPreSystemFrame {
+    -_build_frame()
+    -_initiate_frame()
+    -_on_select_transect()
+}
+
+class frames_ProcessingFrame {
+    -_build_frame()
+}
+
+class frames_FrameProcessing {
+    +instrument, prop
+    --
+    -_build_frame()
+    -_update_frame()
+    +save_selection()
+}
+
+class frames_FrameSelectInstrument {
+    +instrument, prop
+    --
+    -_build_frame()
+    -_deselect()
+    -_select()
+    -_on_select_instrument()
+    +save_selection()
+    +add_callback_instrument_select()
+
+}
+
+class frames_FrameStartUp {
+    +instrument, prop
+    --
+    -_build_frame()
+    -_update_frame()
+    -update_sbe_instrument_info()
+}
+
+class frames_FrameManageCTDcastsStation {
+    +instrument, prop
+    --
+    -_build_frame()
+    -_update_frame()
+    +save_selection()
+}
+
+class frames_FrameManageCTDcastsTransect {
+    +instrument, prop
+    --
+    -_build_frame()
+    -_update_frame()
+    +save_selection()
+}
+
+class saves_Saves {
+    -_load()
+    -_save()
+    +set()
+    +get()
+}
+
+class saves_SaveSelection {
+    +save_selection()
+    +load_selection()
+}
+
+class components_AutocompleteCombobox {
+    +set_values()
+    -autocomplete()
+    -handle_keyrelease()
+}
+
+class components_MonospaceLabel {
+}
+
+class components_ColoredFrame {
+    +set_frame_color()
+    +set_frame_thickness()
+    +set_fill_color()
+}
+
+class components_LabelDropdownList {
+    value, prop
+    values, prop
+    --
+    -_create_frame()
+    -_has_new_value()
+    -_on_focus_in()
+    -_on_focus_out()
+    -_on_select()
+    -_run_callbacks()
+    +add_callback_select()
+    +get()
+    +set()
+
+}
+
+class components_LabelEntry {
+    +value, prop
+    --
+    -_create_frame()
+    -_on_focus_out()
+    -_on_change_entry()
+    +add_callback()
+    +get()
+    +set()
+}
+
+class components_LabelDoubleEntry {
+    +first_value, prop
+    +seconf_value, prop
+    --
+    -_create_frame()
+    +get()
+    +set()
+}
+
+class components_CruiseLabelDoubleEntry {
+    +nr, prop
+    +year, prop
+    --
+    -_modify()
+    -_on_change_entry()
+    -_on_focus_in_first()
+    -_on_focus_in_seconf()
+    
+}
+
+class components_CallbackButton {
+    -_create_frame()
+    -_callback()
+    +add_callback()
+    +set_state()
+}
+
+class components_DepthEntry {
+    +water_depth, prop
+    +value, prop
+    --
+    -_create_frame()
+    -_on_focus_out()
+    -_on_change_entry()
+    -_get_plot_depth()
+    +add_callback()
+    +get()
+    +set()
+
+}
+
+class components_VesselLabelDoubleEntry {
+    +name, prop
+    +code, prop
+    --
+    -_modify()
+}
+
+class components_SelectDirectory {
+    +directory, prop, get
+    --
+    -_create_frame()
+    +get()
+    +set()
+}
+
+class components_SelectedInstrumentTextFrame {
+    +instrument, prop
+    --
+    -_set_text()
+    +get()
+    +set()
+}
+
+class components_SeriesEntryPicker {
+    +value()
+    --
+    -_create_frame()
+    -_on_focus_in()
+    -_on_focus_out()
+    -_on_change_entry()
+    -_on_button_down()
+    -_on_button_up()
+    +add_callback()
+    +get()
+    +set()
+}
+
+class components_SurfaceSoakSelector {
+    +surfacesoak, prop
+    --
+    -_create_frame()
+    -_deselect()
+    -_select()
+    -_on_select_button()
+    +add_callback()
+    +get()
+    +set()
+}
+
+class components_SensorTable {
+    +instrument, prop
+    --
+    -_create_frame()
+    -_on_select_instrument()
+    -_on_change_status()
+    -_get_sorted_list_by()
+    -_sort_by()
+    -_sort_by_id_list()
+    -_clear_widget()
+    +update_data()
+    +get()
+    +set()
+}
+
+class components_LabelCheckbox {
+    -_create_frame()
+    -_on_toggle()
+    +add_callback()
+    +get()
+    +set(
+}
+
+class components_PositionEntries {
+    +lat, prop
+    +lon, prop
+    --
+    -_create_frame()
+    -_on_change_entry_lat()
+    -_on_change_entry_lon()
+    -_on_focus_in_lat()
+    -_on_focus_in_lon()
+    -_on_focus_out_lat()
+    -_on_focus_out_lon()
+    -_run_callbacks()
+    +add_callback()
+    +get()
+    +set()
+}
+
+
+components_CruiseLabelDoubleEntry <|-- components_LabelDoubleEntry
+components_VesselLabelDoubleEntry <|-- components_LabelDoubleEntry
+components_LabelDropdownList <|-- components_AutocompleteCombobox
+
+
+frames_StationPreSystemFrame <|-- saves_SaveSelection
+frames_StationPreSystemFrame <|-- frames_CommonFrameMethods
+frames_StationPreSystemFrame o-- components_CruiseLabelDoubleEntry
+frames_StationPreSystemFrame o-- components_SeriesEntryPicker
+frames_StationPreSystemFrame o-- components_LabelDropdownList : Station
+frames_StationPreSystemFrame o-- components_LabelEntry : Distance to station
+frames_StationPreSystemFrame o-- components_DepthEntry
+frames_StationPreSystemFrame o-- components_LabelDropdownList : Operator
+frames_StationPreSystemFrame o-- components_VesselLabelDoubleEntry
+frames_StationPreSystemFrame o-- components_LabelEntry : Bin size
+frames_StationPreSystemFrame o-- components_CallbackButton : Svepa
+frames_StationPreSystemFrame o-- components_PositionEntries
+frames_StationPreSystemFrame o-- components_CallbackButton : Validate
+frames_StationPreSystemFrame o-- components_CallbackButton : Run Seasave
+
+frames_TransectPreSystemFrame <|-- saves_SaveSelection
+frames_TransectPreSystemFrame <|-- frames_CommonFrameMethods
+frames_TransectPreSystemFrame o-- components_CruiseLabelDoubleEntry
+frames_TransectPreSystemFrame o-- components_SeriesEntryPicker
+frames_TransectPreSystemFrame o-- components_LabelDropdownList : Transect
+frames_TransectPreSystemFrame o-- components_LabelDropdownList : Operator
+frames_TransectPreSystemFrame o-- components_VesselLabelDoubleEntry
+frames_TransectPreSystemFrame o-- components_LabelCheckbox : New transect
+
+frames_FrameProcessing <|-- saves_SaveSelection
+
+frames_FrameProcessing o-- components_SelectedInstrumentTextFrame
+frames_FrameProcessing *-- frames_ProcessingFrame
+
+frames_FrameSelectInstrument o-- components_SelectDirectory
+
+frames_FrameStartUp <|-- saves_SaveSelection
+frames_FrameStartUp o-- components_SensorTable
+
+frames_FrameManageCTDcastsStation o-- components_SelectedInstrumentTextFrame
+frames_FrameManageCTDcastsStation *-- frames_StationPreSystemFrame
+
+frames_FrameManageCTDcastsTransect o-- components_SelectedInstrumentTextFrame
+frames_FrameManageCTDcastsTransect *-- frames_TransectPreSystemFrame
+
+saves_SaveSelection <|-- saves_Saves
+
+
+@enduml
+
+
