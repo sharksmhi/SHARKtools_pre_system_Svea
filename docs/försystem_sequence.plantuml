@@ -17,6 +17,7 @@ participant Station
 participant Position
 participant Depth
 participant Distance
+participant Operator
 end box
 box "Inför/På Station: Visa" #GreenYellow
 participant GUI_fält_2
@@ -28,8 +29,7 @@ participant Validate
 participant Seasave
 end box
 collections Config
-collections "Config/SBE/XMLCON"
-collections "Config/SBE/Sesave_PSA"
+
 database stations 
 database "Data Scifi01"
 database "Data raw"
@@ -40,27 +40,36 @@ database svepa
 == Välj CTD och visa sensorinfo, root dirs==
 User -> CTDs: Välj CTD
 CTDs -> GUI_fält_1: Visa vald CTD
-CTDs -> "Config/SBE/XMLCON": Hämtar XMLCON info 
-"Config/SBE/XMLCON" -> GUI_fält_1: Visa sökväg XMLCON 
-"Config/SBE/XMLCON" -> GUI_fält_1: Visa sensornamn o sensorid  
-Config -> GUI_fält_1: Visa default config dir (c:/ctd/config)
+CTDs -> "Config": Hämtar XMLCON info 
+Config -> GUI_fält_1: Visa sökväg XMLCON 
+Config -> GUI_fält_1: Visa sensornamn o sensorid  
 "Data raw" -> GUI_fält_1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
 "Data Scifi01" -> GUI_fält_1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
 "Data local" -> GUI_fält_1: C:\ctd\data\
 
 User -> Sensor_OK: Sensoruppsättning OK
-Sensor_OK -> "Config/SBE/Sesave_PSA": Uppdatera Seasave PSA-fil m XMLCON
-Sensor_OK -> Cruise:Gå till Inför Station
+Sensor_OK -> Config: Uppdatera Seasave PSA-fil m XMLCON
+Sensor_OK -> Cruise: Gå till Inför Station
 
 == Ange Cruise, Serienr, välj station och operator ==
 User -> Cruise: Innevarande år YYYY förvalt. Ange Cruise nummer. Spara till nästa session
-User -> Serie: Ange serienummer
-Serie -> "Data Scifi01": Kolla om serienummret redan finns. 
+Cruise -> GUI_fält_2: Sätt cruisenr
+User -> Serie: Ange serienummer. Spara till nästa session + 1 (Uppräkning vid nytt kast)
+Serie -> "Data Scifi01": Kolla om serienummret redan finns.
+    alt Serien hittades inte
+        "Data Scifi01"-> GUI_fält_2: Unik serie, sätt serienr. 
+        else Serien finns redan
+        "Data Scifi01"-> GUI_fält_2: Felmeddelane. Serien finns redan.
+    end
+
+
+
 "Data Scifi01"-> GUI_fält_2: Ge felmeddelande om serienummret redan finns. 
 User -> Station : Väljer station från lista 
 Station -> stations : Hämtar information om station 
 stations -> GUI_fält_2 : Sätter nominell pos
 stations -> GUI_fält_2 : Sätter djup
+User -> Operator: Ange CTD-operatör
 
 
 == Manuell position ==
