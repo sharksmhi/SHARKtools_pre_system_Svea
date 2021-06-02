@@ -140,6 +140,7 @@ Validate -> GUI_fält_2: Validera inmatade info?
     GUI_fält_2 -> Config: Sätt Depth och Y-tick i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt CTD-operatör i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt filnamn (SBE09_1387_20200207_0801_77_SE_01_0120.hex) PSA-fil
+    GUI_fält_2 -> "Data local": Spara filer local i C:\ctd\temp
     else info ej ok
     Validate -> GUI_fält_2: Ge felmeddelande. Ange vad som behöver justeras. Markera fält
     end

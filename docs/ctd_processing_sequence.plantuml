@@ -1,0 +1,51 @@
+@startuml ctd_processing
+'skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+
+actor User
+box "Välj CTD: Knappar" #LightBlue
+participant CTDs
+participant "Filer"
+participant "XMLCON"
+end box
+box "Välj CTD: Visa" #GreenYellow
+participant GUI_fält_1
+end box
+box "Processeringssteg" #LightGreen
+participant DatCNV
+participant Filter
+participant Align
+participant CellTM
+participant LoopEdit
+participant Derive
+participant BinAvg
+participant Split
+participant BottleSum
+participant SeaPlot
+end box
+
+box "Processeringssteg: Visa" #GreenYellow
+participant GUI_fält_2
+end box
+
+collections Config
+
+database "Data Scifi01"
+database "Data raw"
+database "Data local"
+
+database svepa
+
+== Välj CTD och visa sensorinfo, root dirs==
+User -> CTDs: Välj CTD
+CTDs -> GUI_fält_1: Visa vald CTD
+CTDs -> "Config": Hämtar XMLCON info 
+Config -> GUI_fält_1: Visa sökväg XMLCON 
+Config -> GUI_fält_1: Visa sensornamn o sensorid  
+"Data raw" -> GUI_fält_1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
+"Data Scifi01" -> GUI_fält_1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
+"Data local" -> GUI_fält_1: C:\ctd\data\
+
+
+
+@enduml
