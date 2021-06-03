@@ -3,15 +3,16 @@
 skinparam SequenceMessageAlignment center
 
 actor User
-box "Välj CTD: Knappar" #LightBlue
+box "Välj CTD, Filer, XMLCON Knappar" #LightBlue
 participant CTDs
-participant "Filer"
-participant "XMLCON"
+participant Filer
+participant XMLCON
+participant Start
 end box
-box "Välj CTD: Visa" #GreenYellow
-participant GUI_fält_1
+box "Visa val: Visa" #GreenYellow
+participant GUI1
 end box
-box "Processeringssteg" #LightGreen
+box "Processeringssteg SBE" #LightGreen
 participant DatCNV
 participant Filter
 participant Align
@@ -25,8 +26,16 @@ participant SeaPlot
 end box
 
 box "Processeringssteg: Visa" #GreenYellow
-participant GUI_fält_2
+participant GUI2
 end box
+
+box "Processeringssteg extra" #LightGreen
+participant TrueDepth
+participant SoundVel
+participant Header_fix
+participant SensorInfo
+end box
+
 
 collections Config
 
@@ -36,15 +45,47 @@ database "Data local"
 
 database svepa
 
-== Välj CTD och visa sensorinfo, root dirs==
+== Välj CTD, processingssteg ==
 User -> CTDs: Välj CTD
-CTDs -> GUI_fält_1: Visa vald CTD
-CTDs -> "Config": Hämtar XMLCON info 
-Config -> GUI_fält_1: Visa sökväg XMLCON 
-Config -> GUI_fält_1: Visa sensornamn o sensorid  
-"Data raw" -> GUI_fält_1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
-"Data Scifi01" -> GUI_fält_1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
-"Data local" -> GUI_fält_1: C:\ctd\data\
+CTDs -> GUI1: Visa vald CTD
+    alt Om SBE19 eller MVP200 är vald
+        CTDs -> Config: Hämta XMLCON
+        Config -> GUI1: Hämta XMLCON
+    else Övriga data har egen XMLCON
+        "Data local" -> GUI1: XMLCON finns tillsammans med data
+    end
+
+CTDs -> Config: Visa default processering för vald CTD
+Config -> GUI2: Visa vilket steg som körs, samt söktväg
+    alt Välj Soak
+        LoopEdit -> Config: Default. 7-8m
+        Config -> GUI2: Hämta o kör LoopEdit.psa
+    else
+        LoopEdit -> Config: Deep. 15m
+        Config -> GUI2: Hämta o kör LoopEdit_deep.psa
+    else 
+        LoopEdit -> Config: Shallow. 5m
+        Config -> GUI2: Hämta o kör LoopEdit_shallow.psa
+    end
+
+
+
+== Välj filer att processera ==
+CTDs -> "Data local": Hämtar raw filer för processering i ctd-temp
+"Data local" -> GUI1: Visa tillgängliga filer. Andra raw-filer som man vill processera läggs i ctd-temp.
+
+
+== Visa sökvägar till data, raw, processed == 
+"Data raw" -> GUI1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
+"Data Scifi01" -> GUI1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
+"Data local" -> GUI1: C:\ctd\data\
+
+== Kör Processering ==
+User -> Start: Klicka start
+Start -> SensorInfo: Skapa SensorInfo utifrån XMLCON och instrument.xlsx
+SensorInfo -> "Data local": Spara sensorinfo med samma filnamn.sensorinfo
+
+
 
 
 
