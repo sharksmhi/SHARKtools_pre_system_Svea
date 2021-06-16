@@ -43,8 +43,6 @@ database "Data Scifi01"
 database "Data raw"
 database "Data local"
 
-database svepa
-
 == Välj CTD, processingssteg ==
 User -> CTDs: Välj CTD
 CTDs -> GUI1: Visa vald CTD
@@ -57,6 +55,19 @@ CTDs -> GUI1: Visa vald CTD
 
 CTDs -> Config: Visa default processering för vald CTD
 Config -> GUI2: Visa vilket steg som körs, samt söktväg
+
+
+== Välj filer att processera ==
+CTDs -> "Data local": Hämtar raw filer för processering i ctd-temp
+"Data local" -> GUI1: Visa tillgängliga filer. Andra raw-filer som man vill processera läggs i ctd-temp.
+
+User -> Filer: Välj fil/filer att processera
+Filer -> GUI1: Visa valda filer.
+User -> GUI1: Ta bort oönskade Filer
+
+== Justera processering ==
+User -> DatCNV: Gör ev justeringar i processing.
+
     alt Välj Soak
         LoopEdit -> Config: Default. 7-8m
         Config -> GUI2: Hämta o kör LoopEdit.psa
@@ -68,25 +79,36 @@ Config -> GUI2: Visa vilket steg som körs, samt söktväg
         Config -> GUI2: Hämta o kör LoopEdit_shallow.psa
     end
 
-
-
-== Välj filer att processera ==
-CTDs -> "Data local": Hämtar raw filer för processering i ctd-temp
-"Data local" -> GUI1: Visa tillgängliga filer. Andra raw-filer som man vill processera läggs i ctd-temp.
-
+    alt Välj om Tau-korrektion O2 av/på
+        Derive -> Config: Tau på (default)
+        Config -> GUI2: Justera derive.psa
+    else
+        Derive -> Config: Tau av
+        Config -> GUI2: Justera derive.psa
+    end
 
 == Visa sökvägar till data, raw, processed == 
-"Data raw" -> GUI1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
-"Data Scifi01" -> GUI1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
-"Data local" -> GUI1: C:\ctd\data\
+"Data raw" -> GUI1: Raw-Data: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
+"Data Scifi01" -> GUI1: NSF-Data: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
+"Data local" -> GUI1: Locl-data: (Raw/cnv/NSF) C:\ctd\data\
 
-== Kör Processering ==
+== Kör Processering, skapa CNV, Raw, SBE-plottar och SensorInfo ==
 User -> Start: Klicka start
-Start -> SensorInfo: Skapa SensorInfo utifrån XMLCON och instrument.xlsx
+Start -> DatCNV: Kör processering
+DatCNV -> SeaPlot: 
+SeaPlot -> TrueDepth: Kör extra processeringssteg
+TrueDepth -> Header_fix:
+Header_fix -> Config: Skapa SensorInfo från XMLCON (SBE19/MVP200) 
+Header_fix -> "Data local": Skapa SensorInfo från XMLCON-fil (SBE09) i temp 
+"Data local" -> SensorInfo:  
+Config -> SensorInfo: och instrument.xlsx
 SensorInfo -> "Data local": Spara sensorinfo med samma filnamn.sensorinfo
+SensorInfo -> "Data local": Skapa CNV, Raw o ev SBE-plottar. 
+SensorInfo -> "Data raw": Kopiera Raw-filer till servern
 
 
-
-
+== CNV + SensorInfo till NSF ==
+"Data local" -> "Data local": Skapa NSF lokalt
+"Data local" -> "Data Scifi01": Skapa/Kopiera NSF till servern
 
 @enduml
