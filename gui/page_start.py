@@ -58,7 +58,8 @@ class PageStart(tk.Frame):
 
         self._frame_select_instrument = frames.FrameSelectInstrument(self.notebook.get_frame('Välj CTD'), self.controller)
         self._frame_select_instrument.grid(row=0, column=0, **layout)
-        self._frame_select_instrument.add_callback(self._on_confirm_sensors)
+        self._frame_select_instrument.add_callback_select_instrument(self._on_select_instrument)
+        self._frame_select_instrument.add_callback_confirm(self._on_confirm_sensors)
 
         self._update_frame_manage_ctd_casts()
 
@@ -87,11 +88,16 @@ class PageStart(tk.Frame):
             self._frame_manage_ctd_casts = frames.FrameManageCTDcastsStation(frame, self.controller)
             self._frame_manage_ctd_casts.grid(row=0, column=1, **layout)
 
+    def _on_select_instrument(self):
+        self.notebook.set_state('disabled', 'Försystem (Inför station / På station)')
+
     def _on_confirm_sensors(self):
         instrument = self._frame_select_instrument.instrument
         if not instrument:
             return
         if instrument == self._current_instrument:
+            self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
+            self.notebook.select_frame('Försystem (Inför station / På station)')
             return
         self._current_instrument = instrument
 

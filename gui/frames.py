@@ -383,7 +383,8 @@ class FrameSelectInstrument(tk.Frame):
 
         self.controller = controller
 
-        self._cb = set()
+        self._cb_confirm = set()
+        self._cb_select = set()
 
         self._build_frame()
 
@@ -409,7 +410,7 @@ class FrameSelectInstrument(tk.Frame):
         tkw.grid_configure(self, nr_rows=4, nr_columns=3)
 
     def _on_confirm(self):
-        for func in self._cb:
+        for func in self._cb_confirm:
             func()
 
     def _on_change_config_path(self, ok):
@@ -423,7 +424,6 @@ class FrameSelectInstrument(tk.Frame):
             return
 
     def _on_select_instrument(self):
-
         if not self.instrument:
             self._frame_info.reset_info()
             self._sensor_table.reset_data()
@@ -440,6 +440,9 @@ class FrameSelectInstrument(tk.Frame):
         instrument_info = self.controller.get_sensor_info_in_xmlcon(self.instrument)
         self._sensor_table.update_data(instrument_info)
 
+        for func in self._cb_select:
+            func()
+
     @property
     def config_root_directory(self):
         return self._frame_info.config_root_path
@@ -448,8 +451,11 @@ class FrameSelectInstrument(tk.Frame):
     def data_root_directory(self):
         return self._frame_info.data_root_path
 
-    def add_callback(self, func):
-        self._cb.add(func)
+    def add_callback_confirm(self, func):
+        self._cb_confirm.add(func)
+
+    def add_callback_select_instrument(self, func):
+        self._cb_select.add(func)
 
     @property
     def instrument(self):
@@ -469,7 +475,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
         self.latest_instrument = None
 
-        self._selections_to_store = ['_stringvar_config_root_path', '_stringvar_data_root_path']
+        self._selections_to_store = ['_stringvar_config_root_path',
+                                     '_stringvar_data_root_path_local',
+                                     '_stringvar_data_root_path_server']
 
         self._cb_config = set()
         self._cb_data = set()
@@ -483,37 +491,52 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
                       pady=3)
 
         self._stringvar_config_root_path = tk.StringVar()
-        self._stringvar_data_root_path = tk.StringVar()
+        self._stringvar_data_root_path_local = tk.StringVar()
+        self._stringvar_data_root_path_server = tk.StringVar()
         self._stringvar_ctd = tk.StringVar()
         self._stringvar_xmlcon = tk.StringVar()
         self._stringvar_seasave_psa = tk.StringVar()
 
+        r = 0
         root_config = tk.Label(self, text='Rotkatalog för configfiler:')
-        root_config.grid(row=0, column=0, sticky='w', **layout)
+        root_config.grid(row=r, column=0, sticky='w', **layout)
         root_config.bind('<Control-Button-3>', self._on_click_root_config)
-        tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=0, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r, column=1, sticky='w', **layout)
 
-        root_data = tk.Label(self, text='Rotkatalog för data:')
-        root_data.grid(row=1, column=0, sticky='w', **layout)
-        root_data.bind('<Control-Button-3>', self._on_click_root_data)
-        tk.Label(self, textvariable=self._stringvar_data_root_path).grid(row=1, column=1, sticky='w', **layout)
+        r += 1
+        root_data_local = tk.Label(self, text='Rotkatalog för data (lokal disk):')
+        root_data_local.grid(row=r, column=0, sticky='w', **layout)
+        root_data_local.bind('<Control-Button-3>', self._on_click_root_data_local)
+        tk.Label(self, textvariable=self._stringvar_data_root_path_local).grid(row=r, column=1, sticky='w', **layout)
 
-        ttk.Separator(self, orient='horizontal').grid(row=2, column=0, columnspan=2, sticky='ew')
+        # r += 1
+        # root_data_server = tk.Label(self, text='Rotkatalog för data (server):')
+        # root_data_server.grid(row=r, column=0, sticky='w', **layout)
+        # root_data_server.bind('<Control-Button-3>', self._on_click_root_data_server)
+        # tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
 
-        tk.Label(self, text='Vald CTD:').grid(row=3, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_ctd).grid(row=3, column=1, sticky='w', **layout)
+        r += 1
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
 
-        ttk.Separator(self, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky='ew')
+        r += 1
+        tk.Label(self, text='Vald CTD:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_ctd).grid(row=r, column=1, sticky='w', **layout)
 
-        tk.Label(self, text='Sökväg XMLCON:').grid(row=5, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_xmlcon).grid(row=5, column=1, sticky='w', **layout)
+        r += 1
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
 
-        tk.Label(self, text='Sökväg seasave.psa:').grid(row=6, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_seasave_psa).grid(row=6, column=1, sticky='w', **layout)
+        r += 1
+        tk.Label(self, text='Sökväg XMLCON:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_xmlcon).grid(row=r, column=1, sticky='w', **layout)
 
-        ttk.Separator(self, orient='horizontal').grid(row=8, column=0, columnspan=2, sticky='ew')
+        r += 1
+        tk.Label(self, text='Sökväg seasave.psa:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_seasave_psa).grid(row=r, column=1, sticky='w', **layout)
 
-        tkw.grid_configure(self, nr_columns=2, nr_rows=8)
+        r += 1
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
+
+        tkw.grid_configure(self, nr_columns=2, nr_rows=r+1)
 
     def add_callback_config(self, func):
         self._cb_config.add(func)
@@ -525,10 +548,8 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         directory = filedialog.askdirectory()
         if not directory:
             return
-        ok = self._check_config_root_directory()
+        ok = self._set_config_root_directory()
         if ok:
-            self._stringvar_config_root_path.set(directory)
-            self.controller.ctd_config_root_directory = directory
             self.save_selection()
             self.update_info()
         else:
@@ -536,14 +557,26 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         for func in self._cb_config:
             func(ok)
 
-    def _on_click_root_data(self, event=None):
+    def _on_click_root_data_local(self, event=None):
         directory = filedialog.askdirectory()
         if not directory:
             return
-        ok = self._check_data_root_directory()
+        ok = self._set_data_root_directory_local(directory)
         if ok:
-            self._stringvar_data_root_path.set(directory)
-            self.controller.ctd_data_root_directory = directory
+            self.save_selection()
+            self.update_info()
+        else:
+            self.reset_info()
+
+        for func in self._cb_data:
+            func(ok)
+
+    def _on_click_root_data_server(self, event=None):
+        directory = filedialog.askdirectory()
+        if not directory:
+            return
+        ok = self._set_data_root_directory_server(directory)
+        if ok:
             self.save_selection()
             self.update_info()
         else:
@@ -570,9 +603,10 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self._stringvar_xmlcon.set(self.controller.get_xmlcon_path(self.latest_instrument))
         self._stringvar_seasave_psa.set(self.controller.get_seasave_psa_path())
 
-    def _check_config_root_directory(self):
+    def _set_config_root_directory(self, directory):
         try:
-            self.controller.ctd_config_root_directory = self.config_root_path
+            self.controller.ctd_config_root_directory = directory
+            self._stringvar_config_root_path.set(directory)
         except:
             messagebox.showerror('Val av instrument',
                                  f'Rotkatalogens struktur för configfiler verkar inte stämma: '
@@ -580,12 +614,24 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             return False
         return True
 
-    def _check_data_root_directory(self):
+    def _set_data_root_directory_local(self, directory):
         try:
-            self.controller.ctd_data_root_directory = self.data_root_path
+            self.controller.ctd_data_root_directory = directory
+            self._stringvar_data_root_path_local.set(directory)
         except:
             messagebox.showerror('Val av instrument',
-                                 f'Något gick fel när rotkatalogen för data skulle sättas: '
+                                 f'Något gick fel när rotkatalogen för lokal data skulle sättas: '
+                                 f'\n{traceback.format_exc()}')
+            return False
+        return True
+
+    def _set_data_root_directory_server(self, directory):
+        try:
+            self.controller.ctd_data_root_directory_server = directory
+            self._stringvar_data_root_path_server.set(directory)
+        except:
+            messagebox.showerror('Val av instrument',
+                                 f'Något gick fel när rotkatalogen för data på servern skulle sättas: '
                                  f'\n{traceback.format_exc()}')
             return False
         return True
@@ -600,11 +646,11 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
     @property
     def data_root_path(self):
-        return self._stringvar_data_root_path.get()
+        return self._stringvar_data_root_path_local.get()
 
     @data_root_path.setter
     def data_root_path(self, path):
-        self._stringvar_data_root_path.set(str(path))
+        self._stringvar_data_root_path_local.set(str(path))
 
 
 class FrameInstrumentButtons(tk.Frame, SaveSelection):
