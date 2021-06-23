@@ -11,8 +11,9 @@ from sharkpylib.tklib import tkinter_widgets as tkw
 from . import components
 from ..saves import SaveSelection
 
-# from pre_system_svea.operator import Operators
-# from pre_system_svea.station import Stations
+from ..events import post_event
+from ..events import subscribe
+from ..events import print_subscribers
 
 TEXT_LJUST = 10
 
@@ -73,6 +74,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self.load_selection()
 
+        subscribe('confirm_sensors', self._set_instrument)
+        subscribe('confirm_sensors', self._set_next_series)
+        subscribe('focus_out_series', self._on_select_series)
+
+        subscribe('button_svepa', self._temp)
+
+    def _set_instrument(self, instrument):
+        self.instrument = instrument
+
     def _build_frame(self):
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, sticky='nw')
@@ -95,21 +105,21 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         tkw.grid_configure(frame, nr_columns=3, nr_rows=2)
 
-        self._cruise = components.CruiseLabelDoubleEntry(frame_left, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._series = components.SeriesEntryPicker(frame_left, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._station = components.LabelDropdownList(frame_left, title='Station'.ljust(TEXT_LJUST), width=25, autocomplete=True, row=2, column=0, **layout)
-        self._distance = components.LabelEntry(frame_left, title='Distance to station (m)'.ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
-        self._depth = components.DepthEntry(frame_left, title='Plot depth'.ljust(TEXT_LJUST), data_type=float, row=4, column=0, **layout)
-        self._bin_size = components.LabelEntry(frame_left, title='Plot bin size'.ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
+        self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._series = components.SeriesEntryPicker(frame_left, 'series',  title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._station = components.LabelDropdownList(frame_left, 'station', title='Station'.ljust(TEXT_LJUST), width=25, autocomplete=True, row=2, column=0, **layout)
+        self._distance = components.LabelEntry(frame_left, 'distance',  title='Distance to station (m)'.ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
+        self._depth = components.DepthEntry(frame_left, 'depth', title='Plot depth'.ljust(TEXT_LJUST), data_type=float, row=4, column=0, **layout)
+        self._bin_size = components.LabelEntry(frame_left, 'bin_size', title='Plot bin size'.ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
 
-        self._vessel = components.VesselLabelDoubleEntry(frame_right, title='Vessel'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame_right, title='Operator'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._position = components.PositionEntries(frame_right, row=2, column=0, **layout)
+        self._vessel = components.VesselLabelDoubleEntry(frame_right, 'vessel', title='Vessel'.ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._operator = components.LabelDropdownList(frame_right, 'operator', title='Operator'.ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._position = components.PositionEntries(frame_right, 'position', row=2, column=0, **layout)
 
-        self._svepa = components.CallbackButton(frame_bottom, title='Load SVEPA', row=0, column=0, **layout)
-        self._validate = components.CallbackButton(frame_bottom, title='Validate', row=0, column=1, **layout)
+        self._svepa = components.CallbackButton(frame_bottom, 'svepa', title='Load SVEPA', row=0, column=0, **layout)
+        self._validate = components.CallbackButton(frame_bottom, 'validate', title='Validate', row=0, column=1, **layout)
         self._validate.button.config(state='disabled')
-        self._seasave = components.CallbackButton(frame_bottom, title='Run Seasave', row=0, column=2, **layout)
+        self._seasave = components.CallbackButton(frame_bottom, 'seasave', title='Run Seasave', row=0, column=2, **layout)
         self._seasave.button.config(bg='#6691bd')
 
         tkw.grid_configure(frame_left, nr_rows=6)
@@ -117,25 +127,47 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Adding callbacks
-        self._series.add_callback(self._on_select_series)
-        self._station.add_callback_select(self._on_select_station)
-        self._depth.add_callback(self._on_select_depth)
-        self._bin_size.add_callback(self._on_select_bin_size)
-        self._svepa.add_callback(self._load_svepa)
-        self._position.add_callback(self._on_select_lat_lon)
-        self._validate.add_callback(self._validate_all)
-        self._seasave.add_callback(self._run_seasave)
+        # self._series.add_callback(self._on_select_series)
+        # self._station.add_callback_select(self._on_select_station)
+        # self._depth.add_callback(self._on_select_depth)
+        # self._bin_size.add_callback(self._on_select_bin_size)
+        # self._svepa.add_callback(self._load_svepa)
+        # self._position.add_callback(self._on_select_lat_lon)
+        # self._validate.add_callback(self._validate_all)
+        # self._seasave.add_callback(self._run_seasave)
 
         # Store selection
-        self._selections_to_store = ['_cruise', '_series', '_operator',
+        self._selections_to_store = ['_cruise', '_operator',
                                      '_vessel', '_bin_size']
+
+    def _temp(self, dummy):
+        self._set_next_series(self.instrument)
 
     def _initiate_frame(self):
         self._station.values = self.get_station_list()
         self._operator.values = self.get_operator_list()
 
+    def _set_next_series(self, instrument):
+        """
+        Search for the last known series and sets the next one.
+        :return:
+        """
+        # print('instrument', instrument)
+        cruise, year = self._cruise.get()
+        ship_name, ship_code = self._vessel.get()
+        next_serno = self.controller.get_next_serno(server=True,
+                                                    instrument=instrument,
+                                                    cruise=cruise,
+                                                    year=year,
+                                                    ctry=ship_code[:2],
+                                                    ship=ship_code[2:])
+        # print('next_serno', next_serno)
+        self._series.set(next_serno)
+
     def _on_select_series(self, *arg):
-        pass
+        # Check if series exists
+
+        self.controller.series_exists()
 
     def _on_select_station(self, *args, **kwargs):
         station_name = self._station.value
@@ -321,8 +353,8 @@ class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self._cruise = components.CruiseLabelDoubleEntry(frame, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._series = components.SeriesEntryPicker(frame, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._transect = components.LabelDropdownList(frame, title='Transect'.ljust(TEXT_LJUST), width=15, row=2, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame, title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
+        self._transect = components.LabelDropdownList(frame, 'transect',  title='Transect'.ljust(TEXT_LJUST), width=15, row=2, column=0, **layout)
+        self._operator = components.LabelDropdownList(frame, 'operator', title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
 
         self._vessel = components.VesselLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
         self._new_transect = components.LabelCheckbox(frame, title='New transect'.ljust(TEXT_LJUST), row=1, column=1, **layout)
@@ -383,17 +415,20 @@ class FrameSelectInstrument(tk.Frame):
 
         self.controller = controller
 
-        self._cb_confirm = set()
-        self._cb_select = set()
-
         self._build_frame()
+        self._add_subscribers()
+
+    def _add_subscribers(self):
+        subscribe('select_instrument', self._on_select_instrument)
+        subscribe('change_config_path', self._on_change_config_path)
+        subscribe('change_data_path_local', self._on_change_data_path)
+        subscribe('change_data_path_server', self._on_change_data_path)
 
     def _build_frame(self):
         layout = dict(padx=5, pady=5, sticky='nsew')
 
         self._frame_instrument_buttons = FrameInstrumentButtons(self, self.controller)
         self._frame_instrument_buttons.grid(row=0, column=0, **layout)
-        self._frame_instrument_buttons.add_callback(self._on_select_instrument)
 
         self._sensor_table = components.SensorTable(self, self.controller, row=0, column=1, **layout)
 
@@ -401,17 +436,14 @@ class FrameSelectInstrument(tk.Frame):
 
         self._frame_info = SelectionInfoFrame(self, self.controller)
         self._frame_info.grid(row=2, column=0, columnspan=2, sticky='nsew')
-        self._frame_info.add_callback_config(self._on_change_config_path)
-        self._frame_info.add_callback_data(self._on_change_data_path)
 
         tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
-                  command=self._on_confirm).grid(row=3, column=0, columnspan=2, sticky='e')
+                  command=self._on_confirm_sensors).grid(row=3, column=0, columnspan=2, sticky='e')
 
         tkw.grid_configure(self, nr_rows=4, nr_columns=3)
 
-    def _on_confirm(self):
-        for func in self._cb_confirm:
-            func()
+    def _on_confirm_sensors(self, *args):
+        post_event('confirm_sensors', self.instrument)
 
     def _on_change_config_path(self, ok):
         if not ok:
@@ -423,13 +455,14 @@ class FrameSelectInstrument(tk.Frame):
             self._frame_instrument_buttons.deselect()
             return
 
-    def _on_select_instrument(self):
+    def _on_select_instrument(self, *args):
+        print('_on_select_instrument', self.instrument)
         if not self.instrument:
             self._frame_info.reset_info()
             self._sensor_table.reset_data()
             return
 
-        if not all([self._frame_info.config_root_path, self._frame_info.data_root_path]):
+        if not all([self._frame_info.config_root_path, self._frame_info.data_root_path_local, self._frame_info.data_root_path_server]):
             self._frame_info.reset_info()
             self._sensor_table.reset_data()
             self._frame_instrument_buttons.deselect()
@@ -440,22 +473,17 @@ class FrameSelectInstrument(tk.Frame):
         instrument_info = self.controller.get_sensor_info_in_xmlcon(self.instrument)
         self._sensor_table.update_data(instrument_info)
 
-        for func in self._cb_select:
-            func()
-
     @property
     def config_root_directory(self):
         return self._frame_info.config_root_path
 
     @property
-    def data_root_directory(self):
-        return self._frame_info.data_root_path
+    def data_root_directory_local(self):
+        return self._frame_info.data_root_path_local
 
-    def add_callback_confirm(self, func):
-        self._cb_confirm.add(func)
-
-    def add_callback_select_instrument(self, func):
-        self._cb_select.add(func)
+    @property
+    def data_root_directory_server(self):
+        return self._frame_info.data_root_path_server
 
     @property
     def instrument(self):
@@ -479,12 +507,16 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
                                      '_stringvar_data_root_path_local',
                                      '_stringvar_data_root_path_server']
 
-        self._cb_config = set()
-        self._cb_data = set()
-
         self._build_frame()
 
         self.load_selection()
+
+        self._set_paths_in_controller()
+
+    def _set_paths_in_controller(self):
+        self._set_config_root_directory()
+        self._set_data_root_directory_local()
+        self._set_data_root_directory_server()
 
     def _build_frame(self):
         layout = dict(padx=3,
@@ -509,11 +541,11 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         root_data_local.bind('<Control-Button-3>', self._on_click_root_data_local)
         tk.Label(self, textvariable=self._stringvar_data_root_path_local).grid(row=r, column=1, sticky='w', **layout)
 
-        # r += 1
-        # root_data_server = tk.Label(self, text='Rotkatalog för data (server):')
-        # root_data_server.grid(row=r, column=0, sticky='w', **layout)
-        # root_data_server.bind('<Control-Button-3>', self._on_click_root_data_server)
-        # tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
+        r += 1
+        root_data_server = tk.Label(self, text='Rotkatalog för data (server):')
+        root_data_server.grid(row=r, column=0, sticky='w', **layout)
+        root_data_server.bind('<Control-Button-3>', self._on_click_root_data_server)
+        tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
         ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
@@ -538,12 +570,6 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
         tkw.grid_configure(self, nr_columns=2, nr_rows=r+1)
 
-    def add_callback_config(self, func):
-        self._cb_config.add(func)
-
-    def add_callback_data(self, func):
-        self._cb_data.add(func)
-
     def _on_click_root_config(self, event=None):
         directory = filedialog.askdirectory()
         if not directory:
@@ -554,8 +580,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             self.update_info()
         else:
             self.reset_info()
-        for func in self._cb_config:
-            func(ok)
+        post_event('change_config_path', ok)
 
     def _on_click_root_data_local(self, event=None):
         directory = filedialog.askdirectory()
@@ -567,9 +592,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             self.update_info()
         else:
             self.reset_info()
-
-        for func in self._cb_data:
-            func(ok)
+        post_event('change_data_path_local', ok)
 
     def _on_click_root_data_server(self, event=None):
         directory = filedialog.askdirectory()
@@ -581,9 +604,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             self.update_info()
         else:
             self.reset_info()
-
-        for func in self._cb_data:
-            func(ok)
+        post_event('change_data_path_server', ok)
 
     def reset_info(self):
         self._stringvar_ctd.set('')
@@ -603,7 +624,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self._stringvar_xmlcon.set(self.controller.get_xmlcon_path(self.latest_instrument))
         self._stringvar_seasave_psa.set(self.controller.get_seasave_psa_path())
 
-    def _set_config_root_directory(self, directory):
+    def _set_config_root_directory(self, directory=None):
+        if not directory:
+            directory = self._stringvar_config_root_path.get()
         try:
             self.controller.ctd_config_root_directory = directory
             self._stringvar_config_root_path.set(directory)
@@ -614,7 +637,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             return False
         return True
 
-    def _set_data_root_directory_local(self, directory):
+    def _set_data_root_directory_local(self, directory=None):
+        if not directory:
+            directory = self._stringvar_data_root_path_local.get()
         try:
             self.controller.ctd_data_root_directory = directory
             self._stringvar_data_root_path_local.set(directory)
@@ -625,7 +650,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             return False
         return True
 
-    def _set_data_root_directory_server(self, directory):
+    def _set_data_root_directory_server(self, directory=None):
+        if not directory:
+            directory = self._stringvar_data_root_path_server.get()
         try:
             self.controller.ctd_data_root_directory_server = directory
             self._stringvar_data_root_path_server.set(directory)
@@ -645,12 +672,20 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self._stringvar_config_root_path.set(str(path))
 
     @property
-    def data_root_path(self):
+    def data_root_path_local(self):
         return self._stringvar_data_root_path_local.get()
 
-    @data_root_path.setter
-    def data_root_path(self, path):
+    @data_root_path_local.setter
+    def data_root_path_local(self, path):
         self._stringvar_data_root_path_local.set(str(path))
+
+    @property
+    def data_root_path_server(self):
+        return self._stringvar_data_root_path_server.get()
+
+    @data_root_path_server.setter
+    def data_root_path_server(self, path):
+        self._stringvar_data_root_path_server.set(str(path))
 
 
 class FrameInstrumentButtons(tk.Frame, SaveSelection):
@@ -671,11 +706,10 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
 
         self._selections_to_store = ['directory_config', 'directory_data']
 
-        self._cb = set()
-
         self._build_frame()
 
         self.load_selection()
+
 
     def _build_frame(self):
 
@@ -715,22 +749,23 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
 
         tkw.grid_configure(frame, nr_rows=5, nr_columns=1)
 
-    def deselect(self):
+    def deselect(self, *args, **kwargs):
         for name, wid in self.buttons.items():
             wid.configure(bg=self.button_unselected_color)
         self._selected = None
 
     def _select(self, name):
+        print('Name', name)
         if not self.buttons.get(name):
             return
+
         self.buttons[name].configure(bg=self.button_selected_color)
         self._selected = name
 
     def _on_select_instrument(self, button_name):
         self.deselect()
         self._select(button_name)
-        for func in self._cb:
-            func()
+        post_event('select_instrument', button_name)
 
     @property
     def instrument(self):
@@ -742,9 +777,6 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
             return
         self.deselect()
         self._select(name)
-
-    def add_callback(self, func):
-        self._cb.add(func)
 
 
 class FrameStartUp(tk.Frame, SaveSelection):
@@ -817,7 +849,7 @@ class FrameManageCTDcastsStation(tk.Frame):
         tkw.grid_configure(frame, nr_rows=3)
 
     def _update_frame(self):
-        self.instrument_text_frame.instrument = self.__instrument
+        # self.instrument_text_frame.instrument = self.__instrument
         self.content_frame.instrument = self.__instrument
 
     def save_selection(self):
@@ -859,7 +891,7 @@ class FrameManageCTDcastsTransect(tk.Frame):
         tkw.grid_configure(frame, nr_rows=2)
 
     def _update_frame(self):
-        self.instrument_text_frame.instrument = self.__instrument
+        # self.instrument_text_frame.instrument = self.__instrument
         self.content_frame.instrument = self.__instrument
 
     def save_selection(self):

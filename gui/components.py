@@ -8,8 +8,14 @@ import math
 from pathlib import Path
 from operator import itemgetter
 
+from ..events import post_event
+from ..events import subscribe
+from ..events import EventTypes
+
 import sharkpylib.tklib.tkinter_widgets as tkw
 
+
+event_types = EventTypes()
 
 
 class AutocompleteCombobox(ttk.Combobox):
@@ -101,6 +107,7 @@ class LabelDropdownList(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='dropdown list',
                  width=10,
                  state='readonly',
@@ -112,6 +119,7 @@ class LabelDropdownList(tk.Frame):
                             'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
         self.width = width
         self.state = state
@@ -123,7 +131,6 @@ class LabelDropdownList(tk.Frame):
         self.grid(**self.grid_frame)
 
         self._old_value = None
-        self._cb_select = set()
 
         self._create_frame()
 
@@ -167,12 +174,13 @@ class LabelDropdownList(tk.Frame):
         self._run_callbacks()
 
     def _run_callbacks(self):
-        value_is_in_list = self.value in self.values
-        for func in self._cb_select:
-            func(value_is_in_list=value_is_in_list)
-
-    def add_callback_select(self, func):
-        self._cb_select.add(func)
+        post_event(f'select_{self._id}', self.value)
+        # value_is_in_list = self.value in self.values
+        # for func in self._cb_select:
+        #     func(value_is_in_list=value_is_in_list)
+    #
+    # def add_callback_select(self, func):
+    #     self._cb_select.add(func)
 
     @property
     def values(self):
@@ -210,6 +218,7 @@ class LabelEntry(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='entry',
                  width=8,
                  state='normal',
@@ -221,6 +230,7 @@ class LabelEntry(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
         self.width = width
         self.data_type = data_type
@@ -228,8 +238,6 @@ class LabelEntry(tk.Frame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -252,8 +260,9 @@ class LabelEntry(tk.Frame):
         tkw.grid_configure(self, nr_columns=3)
 
     def _on_focus_out(self, *args):
-        for func in self._cb:
-            func(self.value)
+        post_event(f'focus_out_{self._id}', self.value)
+        # for func in self._cb:
+        #     func(self.value)
 
     def _on_change_entry(self, *args):
         string = self._stringvar.get()
@@ -270,9 +279,6 @@ class LabelEntry(tk.Frame):
 
             return_string = ''.join(return_list)
             self._stringvar.set(return_string)
-
-    def add_callback(self, func):
-        self._cb.add(func)
 
     @property
     def value(self):
@@ -294,6 +300,7 @@ class LabelDoubleEntry(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='double entry',
                  width=8,
                  **kwargs):
@@ -303,6 +310,7 @@ class LabelDoubleEntry(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
 
         if type(width) == int:
@@ -312,8 +320,6 @@ class LabelDoubleEntry(tk.Frame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -368,12 +374,10 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
 
     def _modify(self):
         self._stringvar_first.trace("w", lambda name, index, mode, sv=self._stringvar_first: self._on_change_entry(sv))
-        # self._stringvar_second.trace("w", lambda name, index, mode, sv=self._stringvar_second: self._on_change_entry(sv))
         self.entry_first.bind('<FocusIn>', self._on_focus_in_first)
         # self.entry_second.bind('<FocusIn>', self._on_focus_in_second)
 
         self._stringvar_second.set(str(datetime.datetime.now().year))
-        print('==== SETTIND YEAR')
         self.entry_second.configure(state='disabled')
 
         self.entry_first.config(width=5)
@@ -417,6 +421,7 @@ class CallbackButton(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='CallbackButton',
                  **kwargs):
 
@@ -425,12 +430,11 @@ class CallbackButton(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -445,11 +449,7 @@ class CallbackButton(tk.Frame):
         tkw.grid_configure(self)
 
     def _callback(self, *args):
-        for func in self._cb:
-            func()
-
-    def add_callback(self, func):
-        self._cb.add(func)
+        post_event(f'button_{self._id}', None)
 
     def set_state(self, state):
         self.button.configure(state=state)
@@ -459,6 +459,7 @@ class DepthEntry(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  width=8,
                  title='Plot depth',
                  state='normal',
@@ -470,6 +471,7 @@ class DepthEntry(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
         self.width = width
         self.data_type = data_type
@@ -481,8 +483,6 @@ class DepthEntry(tk.Frame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -507,8 +507,7 @@ class DepthEntry(tk.Frame):
         tkw.grid_configure(self, nr_columns=2)
 
     def _on_focus_out(self, *args):
-        for func in self._cb:
-            func(self.value)
+        post_event(f'focus_out_{self._id}', self.value)
 
     def _on_change_entry(self, *args):
         string = self._stringvar.get()
@@ -525,9 +524,6 @@ class DepthEntry(tk.Frame):
 
             return_string = ''.join(return_list)
             self._stringvar.set(return_string)
-
-    def add_callback(self, func):
-        self._cb.add(func)
 
     @property
     def water_depth(self):
@@ -585,7 +581,8 @@ class VesselLabelDoubleEntry(LabelDoubleEntry):
 
     def _modify(self):
         self._stringvar_first.set('Svea')
-        self._stringvar_second.set('77SE')
+        # self._stringvar_second.set('77SE')
+        self._stringvar_second.set('7710')
 
         self.entry_first.config(state='disabled', width=5)
         self.entry_second.config(state='disabled', width=5)
@@ -611,6 +608,7 @@ class SelectDirectory(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='Directory',
                  width=40,
                  state='disabled',
@@ -621,14 +619,13 @@ class SelectDirectory(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
         self.width = width
         self.state = state
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -653,6 +650,7 @@ class SelectDirectory(tk.Frame):
         if not directory:
             return
         self._stringvar.set(directory)
+        post_event(f'select_{self._id}')
 
     @property
     def directory(self):
@@ -694,6 +692,8 @@ class SelectedInstrumentTextFrame(tk.Frame):
 
         MonospaceLabel(self, textvariable=self._stringvar).grid(row=0, column=0, padx=5, pady=5, sticky='w')
 
+        subscribe('confirm_sensors', self.set)
+
     @property
     def instrument(self):
         return self.__instrument_name
@@ -710,7 +710,7 @@ class SelectedInstrumentTextFrame(tk.Frame):
     def get(self):
         return self.instrument
 
-    def set(self, item):
+    def set(self, item, **kwargs):
         self.instrument = item
 
 
@@ -718,6 +718,7 @@ class SeriesEntryPicker(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  width=10,
                  include_arrows=True,
                  title='Series',
@@ -728,6 +729,7 @@ class SeriesEntryPicker(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
         self.title = title
 
         if type(width) == int:
@@ -739,8 +741,6 @@ class SeriesEntryPicker(tk.Frame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -784,8 +784,9 @@ class SeriesEntryPicker(tk.Frame):
     def _on_focus_in(self, event=None):
         self.entry.selection_range(0, 'end')
 
-    def _on_focus_out(self, event=None):
+    def _format_value(self):
         string = self._stringvar.get()
+        print('_format_value', string)
         if not string:
             return
         num = int(''.join([s for s in string if s.isdigit()]))
@@ -795,8 +796,11 @@ class SeriesEntryPicker(tk.Frame):
             num = 9999
         new_string = str(num).zfill(4)
         self._stringvar.set(new_string)
-        for func in self._cb:
-            func(new_string)
+        self.entry.update_idletasks()
+
+    def _on_focus_out(self, event=None):
+        self._format_value()
+        post_event(f'focus_out_{self._id}', self._stringvar.get())
 
     def _on_button_down(self, event=None):
         string = self.value
@@ -821,11 +825,9 @@ class SeriesEntryPicker(tk.Frame):
 
     @value.setter
     def value(self, value):
+        print('value', value)
         self._stringvar.set(str(value).strip())
-        self._on_focus_out()
-
-    def add_callback(self, func):
-        self._cb.add(func)
+        self._format_value()
 
     def get(self):
         return self.value
@@ -838,6 +840,7 @@ class SurfaceSoakSelector(tk.Frame):
 
     def __init__(self,
                 parent,
+                id,
                 ** kwargs):
 
         self.grid_frame = {'padx': 5,
@@ -848,11 +851,10 @@ class SurfaceSoakSelector(tk.Frame):
         super().__init__(parent)
         self.grid(**self.grid_frame)
 
+        self._id = id
         self.buttons = {}
 
         self._selected = None
-
-        self._cb = set()
 
         self.button_unselected_color = None
         self.button_selected_color = '#6bd688'
@@ -887,8 +889,7 @@ class SurfaceSoakSelector(tk.Frame):
         self._selected = name
 
         if callback:
-            for func in self._cb:
-                func()
+            post_event(f'select_{self._id}')
 
     def _on_select_button(self, button_name):
         self._deselect()
@@ -904,9 +905,6 @@ class SurfaceSoakSelector(tk.Frame):
             return
         self._deselect()
         self._select(name, callback=False)
-
-    def add_callback(self, func):
-        self._cb.add(func)
 
     def get(self):
         return self.surfacesoak
@@ -1134,10 +1132,7 @@ class SensorTable(tk.Frame):
         self.controller = controller
 
         self._data = {}
-        self.__instrument = None
         self._current_sort_par = None
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -1164,9 +1159,6 @@ class SensorTable(tk.Frame):
             self._stringvar_par.append(par)
             self._stringvar_serial_number.append(sensor_id)
 
-    def add_callback(self, func):
-        self._cb.add(func)
-
     def get(self):
         """
         :return: {'instrument: str,
@@ -1186,35 +1178,6 @@ class SensorTable(tk.Frame):
         if not self._data:
             return
         self._current_sort_par = info.get('sort_par', 'serial_number')
-    #
-    # @property
-    # def instrument(self):
-    #     return self.__instrument
-    #
-    # @instrument.setter
-    # def instrument(self, instrument):
-    #     if instrument == self.__instrument:
-    #         pass
-
-    # def _get_sorted_list_by(self, key=None):
-    #     if not self._current_instrument_data:
-    #         return
-    #     self._current_sort_par = key
-    #     if not key or key == 'serial_number':
-    #         return sorted(self._current_instrument_data)
-    #     id_list = list(self._current_instrument_data)
-    #     value_list = [self._current_instrument_data[_id].get(key, '') for _id in self._current_instrument_data.keys()]
-    #     sorted_id_list, sorted_value_list = list(zip(*sorted(zip(id_list, value_list), key=itemgetter(1))))
-    #     return sorted_id_list
-    #
-    # def _sort_by(self, key=None):
-    #     self._clear_widget()
-    #     self._sort_by_id_list(self._get_sorted_list_by(key))
-    #
-    # def _sort_by_id_list(self, id_list):
-    #     for i, _id in enumerate(id_list):
-    #         self._stringvar_par[i].set(self._data[_id]['parameter'])
-    #         self._stringvar_serial_number[i].set(self._data[_id]['serial_number'])
 
     def _sort_by(self, key):
         self.update_data(sort_by=key)
@@ -1255,6 +1218,7 @@ class LabelCheckbox(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  title='New station', 
                  **kwargs):
 
@@ -1266,8 +1230,7 @@ class LabelCheckbox(tk.Frame):
         super().__init__(parent)
         self.grid(**self.grid_frame)
 
-        self._cb = set()
-        
+        self._id = id
         self.title = title
 
         self._create_frame()
@@ -1277,7 +1240,6 @@ class LabelCheckbox(tk.Frame):
                       pady=5,
                       sticky='nsew')
 
-
         self.intvar = tk.BooleanVar()
         self.checkbutton = tk.Checkbutton(self, variable=self.intvar, command=self._on_toggle)
         self.checkbutton.grid(row=0, column=0, **layout)
@@ -1286,8 +1248,7 @@ class LabelCheckbox(tk.Frame):
 
     def _on_toggle(self, *args):
         print(self.intvar.get())
-        for func in self._cb:
-            func(self.intvar.get())
+        post_event(f'toggle_{self._id}', self.intvar.get())
 
     def get(self):
         return self.intvar.get()
@@ -1295,14 +1256,12 @@ class LabelCheckbox(tk.Frame):
     def set(self, state):
         self.intvar.set(state)
 
-    def add_callback(self, func):
-        self._cb.add(func)
-
 
 class PositionEntries(tk.Frame):
 
     def __init__(self,
                  parent,
+                 id,
                  width=8,
                  **kwargs):
 
@@ -1311,6 +1270,8 @@ class PositionEntries(tk.Frame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
+        self._id = id
+
         if type(width) == int:
             self.width = [width, width]
         else:
@@ -1318,8 +1279,6 @@ class PositionEntries(tk.Frame):
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
-
-        self._cb = set()
 
         self._create_frame()
 
@@ -1438,9 +1397,6 @@ class PositionEntries(tk.Frame):
         self.lon = items[1]
 
     def _run_callbacks(self):
-        for func in self._cb:
-            func()
+        post_event(f'callback_{self._id}', [self.lat, self.lon])
 
-    def add_callback(self, func):
-        self._cb.add(func)
 

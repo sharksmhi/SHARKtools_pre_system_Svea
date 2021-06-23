@@ -18,6 +18,9 @@ from pre_system_svea.controller import Controller
 
 from ctd_processing.sensor_info import InstrumentFile
 
+from ..events import subscribe
+from ..events import post_event
+
 
 class PageStart(tk.Frame):
 
@@ -34,15 +37,20 @@ class PageStart(tk.Frame):
 
         self.controller = Controller()
 
+    def _add_subscribers(self):
+        subscribe('select_instrument', self._on_select_instrument)
+        subscribe('confirm_sensors', self._on_confirm_sensors, before=True)
+
     @property
     def user(self):
         return self.parent_app.user
 
     def startup(self):
         self._create_frame()
+        self._add_subscribers()
 
         self.controller.ctd_config_root_directory = self._frame_select_instrument.config_root_directory
-        self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory
+        self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory_local
 
     def close(self):
         self._frame_manage_ctd_casts.save_selection()
@@ -58,8 +66,6 @@ class PageStart(tk.Frame):
 
         self._frame_select_instrument = frames.FrameSelectInstrument(self.notebook.get_frame('Välj CTD'), self.controller)
         self._frame_select_instrument.grid(row=0, column=0, **layout)
-        self._frame_select_instrument.add_callback_select_instrument(self._on_select_instrument)
-        self._frame_select_instrument.add_callback_confirm(self._on_confirm_sensors)
 
         self._update_frame_manage_ctd_casts()
 
@@ -88,11 +94,14 @@ class PageStart(tk.Frame):
             self._frame_manage_ctd_casts = frames.FrameManageCTDcastsStation(frame, self.controller)
             self._frame_manage_ctd_casts.grid(row=0, column=1, **layout)
 
-    def _on_select_instrument(self):
+    def _on_select_instrument(self, *args):
         self.notebook.set_state('disabled', 'Försystem (Inför station / På station)')
 
-    def _on_confirm_sensors(self):
+    def _on_confirm_sensors(self, *args):
+        from ..events import nr_subscribers
+        print('aa', nr_subscribers('confirm_sensors'))
         instrument = self._frame_select_instrument.instrument
+        print('bb', nr_subscribers('confirm_sensors'))
         if not instrument:
             return
         if instrument == self._current_instrument:
@@ -100,9 +109,11 @@ class PageStart(tk.Frame):
             self.notebook.select_frame('Försystem (Inför station / På station)')
             return
         self._current_instrument = instrument
-
+        print('cc', nr_subscribers('confirm_sensors'))
         self._update_frame_manage_ctd_casts()
+        print('dd', nr_subscribers('confirm_sensors'))
 
         self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
         self.notebook.select_frame('Försystem (Inför station / På station)')
+        print('xx', nr_subscribers('confirm_sensors'))
 
