@@ -25,14 +25,13 @@ end box
 
 box "Inför/På Station: Knappar" #LightBlue
 participant Svepa
-participant Validate
+
 participant Seasave
 end box
 collections Config
 
 database stations 
 database "Data Scifi01"
-database "Data raw"
 database "Data local"
 
 database svepa
@@ -43,16 +42,14 @@ CTDs -> GUI_fält_1: Visa vald CTD
 CTDs -> "Config": Hämtar XMLCON info 
 Config -> GUI_fält_1: Visa sökväg XMLCON 
 Config -> GUI_fält_1: Visa sensornamn o sensorid  
-"Data raw" -> GUI_fält_1: \\\scifi01\\scifi\\Data\\mcseabirdchem\\data\\
 "Data Scifi01" -> GUI_fält_1: \\\scifi01\\scifi\\Processed\\mcseabirdchem\\data\\ 
 "Data local" -> GUI_fält_1: C:\ctd\data\
 
 User -> Sensor_OK: Sensoruppsättning OK
-Sensor_OK -> Config: Uppdatera Seasave PSA-fil m XMLCON
 Sensor_OK -> Cruise: Gå till Inför Station
 
 == Ange Cruise, Serienr, välj station och operator ==
-User -> Cruise: Innevarande år YYYY förvalt. Ange Cruise nummer. Spara till nästa session
+User -> Cruise: Innevarande år förvalt. Ange Cruise nummer. Spara till nästa session
 Cruise -> GUI_fält_2: Sätt cruisenr
 User -> Serie: Ange serienummer. Spara till nästa session + 1 (Uppräkning vid nytt kast)
 Serie -> "Data Scifi01": Kolla om serienummret redan finns.
@@ -102,7 +99,6 @@ Position -> stations : Söker efter närmaste station
         end
     end
 
-
 == Ladda Svepa  ==
 User -> Svepa : Trycker på knapp
 Svepa -> svepa : Frågar om information
@@ -125,21 +121,20 @@ Svepa -> svepa : Frågar om information
     svepa -> GUI_fält_2: Ge felmeddelande att kontakt m Svepa saknas. Fyll i stationsinfo manuellt. 
     end
 
-
-== Validera station ==
-User -> Validate : Trycker på knapp 
-Validate -> GUI_fält_2: Vad skall valideras? Position och djup? Skall validering ske när man klickar SeaSave?
-
 == Starta SeaSave ==
 User -> Seasave: Klicka SeaSave
-Validate -> GUI_fält_2: Validera inmatade info?
-    alt Om info OK uppdatera Seasave PSA-fil och starta Seasave
+
+    alt Validera inmatad info mot SVEPA och stationsregister
+    Seasave -> GUI_fält_2: Validera inmatade info
+    GUI_fält_2 -> Svepa: Kontrollera stationsnamn och serienummer
+    else Om info OK uppdatera Seasave PSA-fil och starta Seasave
+    GUI_fält_1 -> Config: Sätt vald XMLCON i Seasave
     GUI_fält_2 -> Config: Sätt År-Fartyg-Cruisenr i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt Serienr i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt Stationsnamn i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt Depth och Y-tick i seasave PSA-fil
     GUI_fält_2 -> Config: Sätt CTD-operatör i seasave PSA-fil
-    GUI_fält_2 -> Config: Sätt filnamn (SBE09_1387_20200207_0801_77_SE_01_0120.hex) PSA-fil
+    GUI_fält_2 -> Config: Sätt filnamn (SBE09_1387_20200207_0801_77SE_01_0120.hex) PSA-fil
     GUI_fält_2 -> "Data local": Spara filer local i C:\ctd\temp
     else info ej ok
     Validate -> GUI_fält_2: Ge felmeddelande. Ange vad som behöver justeras. Markera fält
