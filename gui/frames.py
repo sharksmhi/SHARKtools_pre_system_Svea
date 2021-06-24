@@ -6,6 +6,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 
+import psutil
 from sharkpylib.tklib import tkinter_widgets as tkw
 
 from . import components
@@ -76,9 +77,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('confirm_sensors', self._set_instrument)
         subscribe('confirm_sensors', self._set_next_series)
-        subscribe('focus_out_series', self._on_select_series)
+        subscribe('focus_out_series', self._on_focus_out_series)
+        subscribe('select_station', self._on_select_station)
+        subscribe('focus_out_station', self._on_select_station)
+        subscribe('return_position', self._on_return_position)
+        subscribe('focus_out_depth', self._on_focus_out_depth)
 
         subscribe('button_svepa', self._temp)
+        subscribe('button_seasave', self._on_return_seasave)
 
     def _set_instrument(self, instrument):
         self.instrument = instrument
@@ -109,7 +115,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._series = components.SeriesEntryPicker(frame_left, 'series',  title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
         self._station = components.LabelDropdownList(frame_left, 'station', title='Station'.ljust(TEXT_LJUST), width=25, autocomplete=True, row=2, column=0, **layout)
         self._distance = components.LabelEntry(frame_left, 'distance',  title='Distance to station (m)'.ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
-        self._depth = components.DepthEntry(frame_left, 'depth', title='Plot depth'.ljust(TEXT_LJUST), data_type=float, row=4, column=0, **layout)
+        self._depth = components.DepthEntry(frame_left, 'depth', title='Plot depth'.ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
         self._bin_size = components.LabelEntry(frame_left, 'bin_size', title='Plot bin size'.ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
 
         self._vessel = components.VesselLabelDoubleEntry(frame_right, 'vessel', title='Vessel'.ljust(TEXT_LJUST), row=0, column=0, **layout)
@@ -127,12 +133,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Adding callbacks
-        # self._series.add_callback(self._on_select_series)
+        # self._series.add_callback(self._on_focus_out_series)
         # self._station.add_callback_select(self._on_select_station)
         # self._depth.add_callback(self._on_select_depth)
         # self._bin_size.add_callback(self._on_select_bin_size)
         # self._svepa.add_callback(self._load_svepa)
-        # self._position.add_callback(self._on_select_lat_lon)
+        # self._position.add_callback(self._on_return_position)
         # self._validate.add_callback(self._validate_all)
         # self._seasave.add_callback(self._run_seasave)
 
@@ -141,7 +147,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                      '_vessel', '_bin_size']
 
     def _temp(self, dummy):
-        self._set_next_series(self.instrument)
+        print_subscribers()
 
     def _initiate_frame(self):
         self._station.values = self.get_station_list()
@@ -164,28 +170,30 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # print('next_serno', next_serno)
         self._series.set(next_serno)
 
-    def _on_select_series(self, *arg):
+    def _on_focus_out_series(self, serno):
         # Check if series exists
+        if self.controller.series_exists():
+            messagebox.showwarning(f'Series already exists: {serno}')
 
-        self.controller.series_exists()
-
-    def _on_select_station(self, *args, **kwargs):
-        station_name = self._station.value
+    def _on_select_station(self, station_name, *args, **kwargs):
+        # station_name = self._station.value
         station_info = self.controller.get_station_info(station_name)
         if not station_info:
             self._depth.water_depth = ''
             self._distance.value = ''
             return
-        self._station.value = station_info.get('station')
-        self._depth.water_depth = str(station_info.get('depth'))
+        self._station.value = station_info.get('station') # Could have been a synonym
         self._position.lat = station_info.get('lat', '')
         self._position.lon = station_info.get('lon', '')
-        self._on_select_depth()
+        self._depth.water_depth = str(station_info.get('depth'))
         self._position.source = 'Nominal'
+        self._distance.value = 0
+        self._on_focus_out_depth()
         self.save_selection()
 
-    def _on_select_lat_lon(self, *args):
-        lat, lon = self._position.get()
+    def _on_return_position(self, position, *args):
+        # lat, lon = self._position.get()
+        lat, lon = position
         print('lon:', lon)
         print('lat:', lat)
         if not all([lat, lon]):
@@ -198,17 +206,28 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self._distance.value = ''
             return
         if station_info['acceptable']:
+            ok = messagebox.askyesno('Station hittad', f'Positionen matchar station: {station_info.get("station", "<No name>")}\n'
+                                                       f'Avståndet till stationen är: {station_info.get("distance", "Oklart")}')
             self._station.value = station_info.get('station', '')
             self._depth.water_depth = station_info.get('depth', '')
             self._distance.value = station_info.get('distance', '')
         else:
-            self._station.value = ''
-            self._depth.water_depth = ''
-            self._distance.value = station_info.get('distance', '')
+            ok = messagebox.askyesno('Ingen station matchar positionen',
+                                     f'Närmaste station är {station_info.get("station", "<No name>")}\n'
+                                     f'Avståndet till stationen är: {station_info.get("distance", "Oklart")}\n'
+                                     f'Är detta en ny station?')
+            if ok:
+                self._station.value = ''
+                self._depth.water_depth = ''
+                self._distance.value = station_info.get('distance', '')
+            else:
+                self._station.value = ''
+                self._depth.water_depth = ''
+                self._distance.value = ''
 
         self._position.source = 'Manual'
 
-    def _on_select_depth(self, *args):
+    def _on_focus_out_depth(self, *args):
         # Set bin size
         plot_depth = self._depth.value
         if not plot_depth:
@@ -249,7 +268,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         Validates if station and depth has matching information.
         :return:
         """
-        pass
+        
 
     def _modify_seasave_file(self):
         depth = self._depth.value
@@ -279,24 +298,44 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                              operator=operator,
                                              position=[lat, lon, pos_source])
 
+    def _on_return_seasave(self, *args):
+        #TODO: Validate selection here
+        self._run_seasave()
+
     def _run_seasave(self):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
-            self._time_disabled_widget(self._seasave.button, 20)
-            # self._seasave.set_state('disabled')
+            # self._time_disabled_widget(self._seasave.button, 30)
+            self._time_disabled_widget(self._seasave.button, program_running='Seasave.exe')
         except ValueError:
-            messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas')
+            messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas\n{traceback.format_exc()}')
+            raise
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
         except:
             messagebox.showerror('Run seasave', f'Något gick fel!\n{traceback.format_exc()}')
+            raise
 
-    def _time_disabled_widget(self, widget, seconds):
+    def _program_is_running(self, program):
+        for p in psutil.process_iter():
+            if p.name() == program:
+                return True
+        return False
+
+    def _time_disabled_widget(self, widget, seconds=None, program_running=''):
         def sub_func():
             widget.config(state='disabled')
-            time.sleep(seconds)
-            widget.config(state='normal')
+            if seconds:
+                time.sleep(seconds)
+                widget.config(state='normal')
+            elif program_running:
+                time.sleep(2)
+                running = self._program_is_running(program_running)
+                while running:
+                    time.sleep(1)
+                    running = self._program_is_running(program_running)
+                widget.config(state='normal')
 
         t = threading.Thread(target=sub_func)
         t.daemon = True  # close pipe if GUI process exits
@@ -574,7 +613,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         directory = filedialog.askdirectory()
         if not directory:
             return
-        ok = self._set_config_root_directory()
+        ok = self._set_config_root_directory(directory)
         if ok:
             self.save_selection()
             self.update_info()
@@ -625,6 +664,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self._stringvar_seasave_psa.set(self.controller.get_seasave_psa_path())
 
     def _set_config_root_directory(self, directory=None):
+        print('directory', directory)
         if not directory:
             directory = self._stringvar_config_root_path.get()
         try:

@@ -166,15 +166,13 @@ class LabelDropdownList(tk.Frame):
     def _on_focus_out(self, *args):
         if not self._has_new_value():
             return
-        self._run_callbacks()
+        post_event(f'focus_out_{self._id}', self.value)
 
     def _on_select(self, *args):
         if not self._has_new_value():
             return
-        self._run_callbacks()
-
-    def _run_callbacks(self):
         post_event(f'select_{self._id}', self.value)
+
         # value_is_in_list = self.value in self.values
         # for func in self._cb_select:
         #     func(value_is_in_list=value_is_in_list)
@@ -498,6 +496,7 @@ class DepthEntry(tk.Frame):
 
         self.entry = tk.Entry(self, textvariable=self._stringvar, width=self.width)
         self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.bind('<Return>', self._on_focus_out)
         self.entry.grid(row=0, column=1, pady=(5, 0), padx=5, sticky='w')
         self.entry.configure(state=self.state)
 
@@ -513,6 +512,8 @@ class DepthEntry(tk.Frame):
         string = self._stringvar.get()
         if self.data_type == int:
             string = ''.join([s for s in string if s.isdigit()])
+            if string and int(string) > 1000:
+                string = '1000'
             self._stringvar.set(string)
         elif self.data_type == float:
             return_list = []
@@ -521,8 +522,9 @@ class DepthEntry(tk.Frame):
                     return_list.append(s)
                 elif s == '.' and '.' not in return_list:
                     return_list.append(s)
-
             return_string = ''.join(return_list)
+            if return_string and int(return_string) > 1000:
+                return_string = '1000'
             self._stringvar.set(return_string)
 
     @property
@@ -1301,11 +1303,11 @@ class PositionEntries(tk.Frame):
         self.entry_lon.grid(row=1, column=1, **layout)
 
         self.entry_lat.bind('<FocusOut>', self._on_focus_out_lat)
-        self.entry_lat.bind('<Return>', self._on_focus_out_lat)
+        self.entry_lat.bind('<Return>', self._on_return_lat)
         self.entry_lat.bind('<FocusIn>', self._on_focus_in_lat)
 
         self.entry_lon.bind('<FocusOut>', self._on_focus_out_lon)
-        self.entry_lon.bind('<Return>', self._on_focus_out_lon)
+        self.entry_lon.bind('<Return>', self._on_return_lon)
         self.entry_lon.bind('<FocusIn>', self._on_focus_in_lon)
         
         source_frame = tk.Frame(self)
@@ -1327,6 +1329,14 @@ class PositionEntries(tk.Frame):
         new_string = ''.join([s for s in string if s.isdigit()][:6])
         stringvar.set(new_string)
 
+    def _on_return_lat(self, event=None):
+        # _on_focus out should be called here when switching focus
+        self.entry_lon.focus_set()
+
+    def _on_return_lon(self, event=None):
+        self._on_focus_out_lon()
+        post_event(f'return_{self._id}', [self.lat, self.lon])
+
     def _on_focus_in_lat(self, event=None):
         self.entry_lat.selection_range(0, 'end')
 
@@ -1339,7 +1349,6 @@ class PositionEntries(tk.Frame):
         string_list.insert(2, '.')
         new_string = ''.join(string_list)
         self._stringvar_lat.set(new_string)
-        self._run_callbacks()
 
     def _on_focus_out_lon(self, event=None):
         string = self._stringvar_lon.get()
@@ -1347,7 +1356,6 @@ class PositionEntries(tk.Frame):
         string_list.insert(2, '.')
         new_string = ''.join(string_list)
         self._stringvar_lon.set(new_string)
-        self._run_callbacks()
 
     @property
     def lat(self):
@@ -1363,7 +1371,6 @@ class PositionEntries(tk.Frame):
         if lat[2] != '.':
             return
         self._stringvar_lat.set(lat)
-        # self._on_focus_out_lat()
 
     @property
     def lon(self):
@@ -1379,7 +1386,6 @@ class PositionEntries(tk.Frame):
         if lon[2] != '.':
             return
         self._stringvar_lon.set(lon)
-        # self._on_focus_out_lon()
 
     @property
     def source(self):
@@ -1396,7 +1402,5 @@ class PositionEntries(tk.Frame):
         self.lat = items[0]
         self.lon = items[1]
 
-    def _run_callbacks(self):
-        post_event(f'callback_{self._id}', [self.lat, self.lon])
 
 

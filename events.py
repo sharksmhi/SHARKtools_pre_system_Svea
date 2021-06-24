@@ -12,11 +12,17 @@ class EventTypes:
     def __init__(self):
         self.event_types = [
                 'select_instrument',
+                'select_station',
+                'return_position',
                 'confirm_sensors',
                 'change_config_path',
                 'change_data_path_local',
                 'change_data_path_server',
-                'button_svepa'
+                'button_svepa',
+                'button_seasave',
+                'focus_out_series',
+                'focus_out_station',
+                'focus_out_depth'
             ]
         for item in self.event_types:
             setattr(self, item, item)
@@ -27,7 +33,17 @@ class EventTypes:
         return False
 
 
+def _remove_existing(event_type, func):
+    func_part = str(func).split()[2]
+    for sub in [subscribers_before, subscribers, subscribers_after]:
+        for f in list(sub.get(event_type, [])):
+            if func_part == str(f).split()[2]:
+                print('REMOVING:', func_part)
+                sub[event_type].remove(f)
+
+
 def subscribe(event_type, func, before=False, after=False):
+    _remove_existing(event_type, func)
     # print('ADDING event:', event_type)
     if event_type not in EventTypes():
         raise InvalidEventType(event_type)
@@ -51,20 +67,20 @@ def subscribe(event_type, func, before=False, after=False):
 
 def post_event(event_type, data, **kwargs):
     for sub in [subscribers_before, subscribers, subscribers_after]:
-        print('='*50)
-        print(f'Running event: {event_type}', data)
+        # print('='*50)
+        # print(f'Running event: {event_type}', data)
         if event_type not in sub:
             continue
-        print('-'*50)
+        # print('-'*50)
         for func in sub[event_type]:
-            print('-' * 50)
-            print(event_type)
-            print('a', len(sub[event_type]))
-            print('func', func, kwargs)
+            # print('-' * 50)
+            # print(event_type)
+            # print('a', len(sub[event_type]))
+            # print('func', func, kwargs)
             func(data, **kwargs)
-            print('b', len(sub[event_type]))
-            for f in sub[event_type]:
-                print('--', f)
+            # print('b', len(sub[event_type]))
+            # for f in sub[event_type]:
+            #     print('--', f)
 
 
 def nr_subscribers(event_type):
