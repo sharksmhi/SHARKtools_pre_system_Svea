@@ -9,6 +9,8 @@ from tkinter import ttk
 import psutil
 from sharkpylib.tklib import tkinter_widgets as tkw
 
+from svepa import exceptions as svepa_exceptions
+
 from . import components
 from ..saves import SaveSelection
 
@@ -16,7 +18,17 @@ from ..events import post_event
 from ..events import subscribe
 from ..events import print_subscribers
 
+from ..gui.translator import Translator
+
 TEXT_LJUST = 10
+
+translator = Translator()
+
+
+class MissingInformationError(Exception):
+    def __init__(self, missing_list, message=''):
+        self.missing_list = missing_list
+        super().__init__(message)
 
 
 class ColoredFrame(tk.Frame):
@@ -83,7 +95,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('return_position', self._on_return_position)
         subscribe('focus_out_depth', self._on_focus_out_depth)
 
-        subscribe('button_svepa', self._temp)
+        subscribe('button_svepa', self._on_return_load_svepa)
         subscribe('button_seasave', self._on_return_seasave)
 
     def _set_instrument(self, instrument):
@@ -104,23 +116,26 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         frame_right = tk.Frame(frame)
         frame_right.grid(row=0, column=2)
 
-        ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
+        # ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
 
         frame_bottom = tk.Frame(frame)
-        frame_bottom.grid(row=2, column=0, columnspan=3)
+        frame_bottom.grid(row=1, column=0, columnspan=3)
 
-        tkw.grid_configure(frame, nr_columns=3, nr_rows=2)
+        tkw.grid_configure(frame, nr_columns=2, nr_rows=2)
 
-        self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._series = components.SeriesEntryPicker(frame_left, 'series',  title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._station = components.LabelDropdownList(frame_left, 'station', title='Station'.ljust(TEXT_LJUST), width=25, autocomplete=True, row=2, column=0, **layout)
-        self._distance = components.LabelEntry(frame_left, 'distance',  title='Distance to station (m)'.ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
-        self._depth = components.DepthEntry(frame_left, 'depth', title='Plot depth'.ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
-        self._bin_size = components.LabelEntry(frame_left, 'bin_size', title='Plot bin size'.ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
+        self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get('_cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._series = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get('_series'), row=1, column=0, **layout)
+        self._station = components.LabelDropdownList(frame_left, 'station', title=translator.get('_station'), width=25, autocomplete=True, row=2, column=0, **layout)
+        self._distance = components.LabelEntry(frame_left, 'distance',  title=translator.get('_distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
+        self._depth = components.DepthEntry(frame_left, 'depth', title=translator.get('_depth').ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
+        self._bin_size = components.LabelEntry(frame_left, 'bin_size', title=translator.get('_bin_size').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
 
-        self._vessel = components.VesselLabelDoubleEntry(frame_right, 'vessel', title='Vessel'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame_right, 'operator', title='Operator'.ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._vessel = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get('_vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._operator = components.LabelDropdownList(frame_right, 'operator', title=translator.get('_operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
         self._position = components.PositionEntries(frame_right, 'position', row=2, column=0, **layout)
+        self._add_samp = components.AddSampInfo(frame_right, 'add_samp', row=3, column=0, **layout)
+        self._event_id = components.LabelEntry(frame_right, 'event_id',  title=translator.get('_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
+        self._parent_event_id = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get('_parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
 
         self._svepa = components.CallbackButton(frame_bottom, 'svepa', title='Load SVEPA', row=0, column=0, **layout)
         self._validate = components.CallbackButton(frame_bottom, 'validate', title='Validate', row=0, column=1, **layout)
@@ -131,16 +146,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame_left, nr_rows=6)
         tkw.grid_configure(frame_right, nr_rows=4)
         tkw.grid_configure(frame_bottom, nr_columns=3)
-
-        # Adding callbacks
-        # self._series.add_callback(self._on_focus_out_series)
-        # self._station.add_callback_select(self._on_select_station)
-        # self._depth.add_callback(self._on_select_depth)
-        # self._bin_size.add_callback(self._on_select_bin_size)
-        # self._svepa.add_callback(self._load_svepa)
-        # self._position.add_callback(self._on_return_position)
-        # self._validate.add_callback(self._validate_all)
-        # self._seasave.add_callback(self._run_seasave)
 
         # Store selection
         self._selections_to_store = ['_cruise', '_operator',
@@ -153,27 +158,51 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._station.values = self.get_station_list()
         self._operator.values = self.get_operator_list()
 
-    def _set_next_series(self, instrument):
+    def get_latest_file(self, server=False):
+        kwargs = {'server': server,
+                  'year': self._cruise.year,
+                  'ship': self._vessel.code,
+                  'cruise': self._cruise.nr}
+        print('frames.get_latest_file kwargs', kwargs)
+        latest_series_path = self.controller.get_latest_series_path(**kwargs)
+        return latest_series_path
+
+    def get_current_file(self, server=False):
+        kwargs = {'server': server,
+                  'instrument': self.instrument,
+                  'ship': self._vessel.code,
+                  'cruise': self._cruise.nr,
+                  'serno': self._series.value}
+        current_file_path = self.controller.get_data_file_path(**kwargs)
+        return current_file_path
+
+    def _set_next_series(self, *args):
         """
         Search for the last known series and sets the next one.
         :return:
         """
-        # print('instrument', instrument)
         cruise, year = self._cruise.get()
         ship_name, ship_code = self._vessel.get()
         next_serno = self.controller.get_next_serno(server=True,
-                                                    instrument=instrument,
                                                     cruise=cruise,
                                                     year=year,
-                                                    ctry=ship_code[:2],
-                                                    ship=ship_code[2:])
-        # print('next_serno', next_serno)
+                                                    ship=ship_code)
         self._series.set(next_serno)
+        post_event('set_next_series', next_serno)
 
     def _on_focus_out_series(self, serno):
-        # Check if series exists
-        if self.controller.series_exists():
-            messagebox.showwarning(f'Series already exists: {serno}')
+        print('_on_focus_out_series', serno)
+        cruise, year = self._cruise.get()
+        ship_name, ship_code = self._vessel.get()
+        series = self.controller.series_exists(server=True,
+                                                cruise=cruise,
+                                                year=year,
+                                                ship=ship_code,
+                                                serno=serno,
+                                                return_file_name=True)
+
+        if series:
+            messagebox.showwarning(f'Series already exists', f'{series}')
 
     def _on_select_station(self, station_name, *args, **kwargs):
         # station_name = self._station.value
@@ -188,33 +217,33 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._depth.water_depth = str(station_info.get('depth'))
         self._position.source = 'Nominal'
         self._distance.value = 0
+        self._event_id.value = ''
+        self._parent_event_id.value = ''
+        self._add_samp.value = None
         self._on_focus_out_depth()
         self.save_selection()
 
     def _on_return_position(self, position, *args):
-        # lat, lon = self._position.get()
         lat, lon = position
-        print('lon:', lon)
-        print('lat:', lat)
         if not all([lat, lon]):
-            return
+            return False
         # Check position against station list
         station_info = self.controller.get_closest_station(float(lat), float(lon))
-        print('station_info:', station_info)
         if not station_info:
             self._station.value = ''
             self._distance.value = ''
-            return
+            return False
         if station_info['acceptable']:
-            ok = messagebox.askyesno('Station hittad', f'Positionen matchar station: {station_info.get("station", "<No name>")}\n'
-                                                       f'Avståndet till stationen är: {station_info.get("distance", "Oklart")}')
+            ok = messagebox.askyesno('Station hittad', f'Positionen ({lat}, {lon}) matchar station: {station_info.get("station", "<No name>")}\n'
+                                                       f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.')
             self._station.value = station_info.get('station', '')
             self._depth.water_depth = station_info.get('depth', '')
             self._distance.value = station_info.get('distance', '')
         else:
-            ok = messagebox.askyesno('Ingen station matchar positionen',
+            ok = messagebox.askyesno(f'Ingen station matchar positionen',
+                                     f'Position: ({lat}, {lon})\n'
                                      f'Närmaste station är {station_info.get("station", "<No name>")}\n'
-                                     f'Avståndet till stationen är: {station_info.get("distance", "Oklart")}\n'
+                                     f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.\n'
                                      f'Är detta en ny station?')
             if ok:
                 self._station.value = ''
@@ -226,6 +255,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 self._distance.value = ''
 
         self._position.source = 'Manual'
+        return True
 
     def _on_focus_out_depth(self, *args):
         # Set bin size
@@ -233,17 +263,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         if not plot_depth:
             return
         plot_depth = int(plot_depth)
-        if not plot_depth % 25:
+        if plot_depth > 100 and not plot_depth % 25:
             self._bin_size.value = 25
-        elif not plot_depth % 10:
+        elif plot_depth != 10 and not plot_depth % 10:
             self._bin_size.value = 10
         else:
             self._bin_size.value = 5
 
     def _on_select_bin_size(self, *args):
-        print('_on_select_bin_size')
         nr_bins = self.get_nr_bins()
-        print(nr_bins)
         if nr_bins == int(nr_bins):
             return
 
@@ -252,7 +280,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         sum_depth = 0
         while sum_depth < water_depth:
-            print(sum_depth)
             sum_depth += step
         self._depth.value = sum_depth
 
@@ -268,7 +295,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         Validates if station and depth has matching information.
         :return:
         """
-        
+        pass
 
     def _modify_seasave_file(self):
         depth = self._depth.value
@@ -281,9 +308,25 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         lat = self._position.lat
         lon = self._position.lon
         pos_source = self._position.source
+        event_id = self._event_id.value
+        parent_event_id = self._parent_event_id.value
+        add_samp = ', '.join(self._add_samp.value)
 
-        if not all([depth, bin_size, cruise_nr, ship_code, serno, lat, lon, station, operator]):
-            raise ValueError('Missing information')
+        attrs = {self._cruise: self._cruise.nr,
+                 self._vessel: self._vessel.code}
+
+        # if not all([depth, bin_size, cruise_nr, ship_code, serno, lat, lon, station, operator]):
+        missing = []
+        for obj in [self._depth, self._bin_size, self._cruise, self._vessel, self._series, self._station, self._operator]:
+            if obj in attrs:
+                if not attrs.get(obj):
+                    missing.append(obj._id.capitalize())
+            else:
+                if not obj.value:
+                    missing.append((obj._id.capitalize()))
+
+        if missing:
+            raise MissingInformationError(missing_list=missing)
 
         nr_bins = int(float(depth) / float(bin_size))
 
@@ -295,8 +338,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                              ship_code=ship_code,
                                              serno=serno,
                                              station=station,
+                                             position=['', '', ''], # We dont set position
                                              operator=operator,
-                                             position=[lat, lon, pos_source])
+                                             event_id=event_id,
+                                             parent_event_id=parent_event_id,
+                                             add_samp=add_samp)
 
     def _on_return_seasave(self, *args):
         #TODO: Validate selection here
@@ -308,9 +354,10 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self.controller.run_seasave()
             # self._time_disabled_widget(self._seasave.button, 30)
             self._time_disabled_widget(self._seasave.button, program_running='Seasave.exe')
-        except ValueError:
-            messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas\n{traceback.format_exc()}')
-            raise
+        except MissingInformationError as e:
+            missing_string = '\n'.join(e.missing_list)
+            messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas\n{missing_string}')
+            return
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
         except:
@@ -351,9 +398,42 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         if not station_info:
             return False
 
-    def _load_svepa(self):
+    def _on_return_load_svepa(self, *args):
         print('Loading SVEPA information')
-        # self._position.source = 'Svepa'
+        try:
+            data = self.controller.get_svepa_info()
+            if not data.get('ctd_station_started'):
+                messagebox.showwarning('Loading information from Svepa', 'No CTD event is running on Svepa!')
+
+            self._series.value = data.get('serno')
+            self._station.value = data.get('station', '')
+            self._cruise.nr = data.get('cruise')
+
+            lat = str(data.get('lat'))
+            lon = str(data.get('lon'))
+            ok = self._on_return_position([lat, lon])
+            if ok:
+                self._position.lat = lat
+                self._position.lon = lon
+                self._position.source = 'Svepa'
+
+            self._set_event_id(data)
+            self._set_parent_event_id(data)
+
+            post_event('load_svepa', data)
+
+        except svepa_exceptions.SvepaConnectionError as e:
+            messagebox.showerror('Load information from Svepa', 'Could not connect to Svepa database!')
+        except svepa_exceptions.SvepaEventTypeNotRunningError as e:
+            messagebox.showerror('Load information from Svepa', f'Event type {e.event_type} not running!')
+        except svepa_exceptions.SvepaException as e:
+            messagebox.showerror('Load information from Svepa', traceback.format_exc())
+
+    def _set_event_id(self, data):
+        self._event_id.value = data.get('event_id', 'Ingen information från Svepa')
+
+    def _set_parent_event_id(self, data):
+        self._parent_event_id.value = data.get('parent_event_id', 'Ingen information från Svepa')
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -401,7 +481,7 @@ class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame, nr_rows=5, nr_columns=2)
 
         # Adding callbacks
-        self._transect.add_callback_select(self._on_select_transect)
+        # self._transect.add_callback_select(self._on_select_transect)
 
         # Store selection
         self._selections_to_store = ['_cruise', '_series', '_transect', '_operator',
@@ -476,8 +556,10 @@ class FrameSelectInstrument(tk.Frame):
         self._frame_info = SelectionInfoFrame(self, self.controller)
         self._frame_info.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
-        tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
-                  command=self._on_confirm_sensors).grid(row=3, column=0, columnspan=2, sticky='e')
+        self.confirm_button = tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
+                  command=self._on_confirm_sensors)
+        self.confirm_button.grid(row=3, column=0, columnspan=2, sticky='e')
+        self.confirm_button.configure(state='disabled')
 
         tkw.grid_configure(self, nr_rows=4, nr_columns=3)
 
@@ -511,6 +593,7 @@ class FrameSelectInstrument(tk.Frame):
         self._frame_info.update_info(self.instrument)
         instrument_info = self.controller.get_sensor_info_in_xmlcon(self.instrument)
         self._sensor_table.update_data(instrument_info)
+        self.confirm_button.configure(state='normal')
 
     @property
     def config_root_directory(self):
@@ -531,6 +614,45 @@ class FrameSelectInstrument(tk.Frame):
     @instrument.setter
     def instrument(self, name):
         self._frame_instrument_buttons.instrument = name
+
+
+class DataFileInfoFrame(tk.Frame):
+    """
+    Frame to show information about existing and built data file.
+    """
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+
+        self.controller = controller
+
+        self._build_frame()
+
+    def _build_frame(self):
+        layout = dict(padx=3,
+                      pady=3)
+
+        self._stringvar_latest_file = tk.StringVar()
+        self._stringvar_current_file = tk.StringVar()
+
+        r = 0
+        tk.Label(self, text='Senast fil:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
+
+        r += 1
+        tk.Label(self, text='Fil som kommer skapas:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_current_file).grid(row=r, column=1, sticky='w', **layout)
+
+    def set_latest_file(self, path):
+        if path:
+            self._stringvar_latest_file.set(path)
+        else:
+            self._stringvar_latest_file.set('För lite information')
+
+    def set_current_file(self, path):
+        if path:
+            self._stringvar_current_file.set(path)
+        else:
+            self._stringvar_current_file.set('För lite information')
 
 
 class SelectionInfoFrame(tk.Frame, SaveSelection):
@@ -682,7 +804,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_data_root_path_local.get()
         try:
             self.controller.ctd_data_root_directory = directory
-            self._stringvar_data_root_path_local.set(directory)
+            self._stringvar_data_root_path_local.set(self.controller.ctd_data_root_directory)
         except:
             messagebox.showerror('Val av instrument',
                                  f'Något gick fel när rotkatalogen för lokal data skulle sättas: '
@@ -695,7 +817,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_data_root_path_server.get()
         try:
             self.controller.ctd_data_root_directory_server = directory
-            self._stringvar_data_root_path_server.set(directory)
+            self._stringvar_data_root_path_server.set(self.controller.ctd_data_root_directory_server)
         except:
             messagebox.showerror('Val av instrument',
                                  f'Något gick fel när rotkatalogen för data på servern skulle sättas: '
@@ -872,6 +994,12 @@ class FrameManageCTDcastsStation(tk.Frame):
 
         self._build_frame()
 
+        subscribe('focus_out_series', self._update_data_file_info)
+        subscribe('series_step', self._update_data_file_info)
+        subscribe('set_next_series', self._update_data_file_info)
+        subscribe('focus_out_cruise', self._update_data_file_info)
+        subscribe('load_svepa', self._update_data_file_info)
+
     def _build_frame(self):
 
         frame = tk.Frame(self)
@@ -886,7 +1014,18 @@ class FrameManageCTDcastsStation(tk.Frame):
 
         self.content_frame = StationPreSystemFrame(frame, controller=self.controller, row=2, column=0, **layout)
 
-        tkw.grid_configure(frame, nr_rows=3)
+        ttk.Separator(frame, orient='horizontal').grid(row=3, column=0, sticky='ew')
+
+        self.data_file_info_frame = DataFileInfoFrame(frame, controller=self.controller)
+        self.data_file_info_frame.grid(row=4, column=0, **layout)
+
+        ttk.Separator(frame, orient='horizontal').grid(row=5, column=0, sticky='ew')
+
+        tkw.grid_configure(frame, nr_rows=6)
+
+    def _update_data_file_info(self, data):
+        self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
+        self.data_file_info_frame.set_current_file(self.content_frame.get_current_file(server=False))
 
     def _update_frame(self):
         # self.instrument_text_frame.instrument = self.__instrument

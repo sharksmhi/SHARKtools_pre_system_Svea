@@ -103,6 +103,83 @@ class ColoredFrame(tk.Frame):
         self.config(bg=color)
 
 
+class AddSampInfo(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 title='Add sampl:',
+                 width=8,
+                 state='normal',
+                 data_type=None,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self._id = id
+        self.title = title
+        self.width = width
+        self.data_type = data_type
+        self.state = state
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._right_widgets = []
+        self._nr_right_rows = 4
+
+        self._create_frame()
+
+        subscribe('load_svepa', self._update)
+
+    def _create_frame(self):
+        layout = dict(padx=2,
+                      pady=5,
+                      sticky='nw')
+        MonospaceLabel(self, text=self.title).grid(row=0, column=0, **layout)
+
+        self.right_frame = tk.Frame(self)
+        self.right_frame.grid(row=0, column=1, **layout)
+
+    def _remove_right_widgets(self):
+        for wid in self._right_widgets:
+            wid.destroy()
+        self._right_widgets = []
+
+    def _update(self, data):
+        add_samp_list = data.get('running_event_types', [])
+        self._update_rigth_widgets(add_samp_list)
+
+    def _update_rigth_widgets(self, add_samp_list):
+        layout = dict(padx=5,
+                      pady=1,
+                      sticky='nw')
+        self._remove_right_widgets()
+        len_add_samp_list = len(add_samp_list)
+        self._nr_right_rows = max(self._nr_right_rows, len_add_samp_list)
+        for r in range(self._nr_right_rows):
+            text = ''
+            if r < len_add_samp_list:
+                text = add_samp_list[r]
+            wid = tk.Label(self.right_frame, text=text)
+            wid.grid(row=r, **layout)
+            self._right_widgets.append(wid)
+
+    @property
+    def value(self):
+        return sorted([item.cget('text') for item in self._right_widgets if item.cget('text').strip()])
+
+    @value.setter
+    def value(self, items):
+        if not items:
+            items = []
+        self._update_rigth_widgets(items)
+
+
+
 class LabelDropdownList(tk.Frame):
 
     def __init__(self,
@@ -373,7 +450,8 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
     def _modify(self):
         self._stringvar_first.trace("w", lambda name, index, mode, sv=self._stringvar_first: self._on_change_entry(sv))
         self.entry_first.bind('<FocusIn>', self._on_focus_in_first)
-        # self.entry_second.bind('<FocusIn>', self._on_focus_in_second)
+        self.entry_first.bind('<FocusOut>', self._on_focus_out_first)
+        self.entry_first.bind('<Return>', self._on_focus_out_first)
 
         self._stringvar_second.set(str(datetime.datetime.now().year))
         self.entry_second.configure(state='disabled')
@@ -383,7 +461,10 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
     def _on_change_entry(self, stringvar=None):
         string = self._stringvar_first.get()
         new_string = ''.join([s for s in string if s.isdigit()])
-        self._stringvar_first.set(new_string[:2].zfill(2))
+        value = new_string[:2]
+        if value == '00':
+            value = '01'
+        self._stringvar_first.set(value)
 
         string = self._stringvar_second.get()
         new_string = ''.join([s for s in string if s.isdigit()])
@@ -394,6 +475,11 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
 
     def _on_focus_in_second(self, event=None):
         self.entry_second.selection_range(0, 'end')
+
+    def _on_focus_out_first(self, event=None):
+        string = self._stringvar_first.get()[:2].zfill(2)
+        self._stringvar_first.set(string)
+        post_event('focus_out_cruise', string)
 
     @property
     def nr(self):
@@ -758,7 +844,7 @@ class SeriesEntryPicker(tk.Frame):
         self.entry = tk.Entry(self, textvariable=self._stringvar, width=self.width[0])
         self.entry.grid(row=0, column=1, ipady=2, **layout)
         self.entry.bind('<FocusOut>', self._on_focus_out)
-        self.entry.bind('<Return>', self._on_focus_out)
+        self.entry.bind('<Return>', self._on_return)
         self.entry.bind('<FocusIn>', self._on_focus_in)
 
         if not self.include_arrows:
@@ -800,6 +886,9 @@ class SeriesEntryPicker(tk.Frame):
         self._stringvar.set(new_string)
         self.entry.update_idletasks()
 
+    def _on_return(self, event=None):
+        self._format_value()
+
     def _on_focus_out(self, event=None):
         self._format_value()
         post_event(f'focus_out_{self._id}', self._stringvar.get())
@@ -810,6 +899,7 @@ class SeriesEntryPicker(tk.Frame):
             self.value = 9999
         else:
             self.value = int(string) - 1
+        post_event('series_step', self.value)
 
     def _on_button_up(self, event=None):
         string = self.value
@@ -820,6 +910,7 @@ class SeriesEntryPicker(tk.Frame):
             if num > 9999:
                 num = 9999
             self.value = num
+        post_event('series_step', self.value)
 
     @property
     def value(self):
@@ -1298,9 +1389,11 @@ class PositionEntries(tk.Frame):
 
         self.entry_lat = tk.Entry(self, textvariable=self._stringvar_lat, width=self.width[0])
         self.entry_lat.grid(row=1, column=0, **layout)
+        self.entry_lat.config(state='disabled')
 
         self.entry_lon = tk.Entry(self, textvariable=self._stringvar_lon, width=self.width[1])
         self.entry_lon.grid(row=1, column=1, **layout)
+        self.entry_lon.config(state='disabled')
 
         self.entry_lat.bind('<FocusOut>', self._on_focus_out_lat)
         self.entry_lat.bind('<Return>', self._on_return_lat)
@@ -1361,14 +1454,14 @@ class PositionEntries(tk.Frame):
     def lat(self):
         string = self._stringvar_lat.get()
         string_list = list(string)
-        string_list.insert(2, '.')
+        string_list.insert(4, '.')
         new_string = ''.join(string_list).strip('.')
         return new_string
 
     @lat.setter
     def lat(self, latitude):
         lat = str(latitude)
-        if lat[2] != '.':
+        if '.' in lat and lat[4] != '.':
             return
         self._stringvar_lat.set(lat)
 
@@ -1376,14 +1469,14 @@ class PositionEntries(tk.Frame):
     def lon(self):
         string = self._stringvar_lon.get()
         string_list = list(string)
-        string_list.insert(2, '.')
+        string_list.insert(4, '.')
         new_string = ''.join(string_list).strip('.')
         return new_string
 
     @lon.setter
     def lon(self, longitude):
         lon = str(longitude)
-        if lon[2] != '.':
+        if '.' in lon and lon[4] != '.':
             return
         self._stringvar_lon.set(lon)
 

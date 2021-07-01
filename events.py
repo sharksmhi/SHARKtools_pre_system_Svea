@@ -22,7 +22,11 @@ class EventTypes:
                 'button_seasave',
                 'focus_out_series',
                 'focus_out_station',
-                'focus_out_depth'
+                'focus_out_depth',
+                'focus_out_cruise',
+                'set_next_series',
+                'series_step',
+                'load_svepa'
             ]
         for item in self.event_types:
             setattr(self, item, item)
