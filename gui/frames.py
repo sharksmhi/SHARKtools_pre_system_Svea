@@ -791,7 +791,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_config_root_path.get()
         try:
             self.controller.ctd_config_root_directory = directory
-            self._stringvar_config_root_path.set(directory)
+            self._stringvar_config_root_path.set(directory or '')
         except:
             messagebox.showerror('Val av instrument',
                                  f'Rotkatalogens struktur för configfiler verkar inte stämma: '
@@ -804,7 +804,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_data_root_path_local.get()
         try:
             self.controller.ctd_data_root_directory = directory
-            self._stringvar_data_root_path_local.set(self.controller.ctd_data_root_directory)
+            self._stringvar_data_root_path_local.set(self.controller.ctd_data_root_directory or '')
         except:
             messagebox.showerror('Val av instrument',
                                  f'Något gick fel när rotkatalogen för lokal data skulle sättas: '
@@ -817,7 +817,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_data_root_path_server.get()
         try:
             self.controller.ctd_data_root_directory_server = directory
-            self._stringvar_data_root_path_server.set(self.controller.ctd_data_root_directory_server)
+            self._stringvar_data_root_path_server.set(self.controller.ctd_data_root_directory_server or '')
         except:
             messagebox.showerror('Val av instrument',
                                  f'Något gick fel när rotkatalogen för data på servern skulle sättas: '
