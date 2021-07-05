@@ -1,10 +1,10 @@
 ECHO OFF
 
-::SET /P python_path= Sökväg till python.exe:
-::SET /P install_dir= Sökväg till installationsmapp:
+SET /P python_path= Sokväg till python.exe:
+SET /P install_dir= Sokväg till installationsmapp:
 
-SET python_path=C:\Python36\python.exe
-SET install_dir=C:\mw\test_install_pre_system_svea
+::SET python_path=C:\Python36\python.exe
+::SET install_dir=C:\mw\test_install_pre_system_svea
 
 ECHO Path to python.exe is: %python_path%
 ECHO Path to install dir:  %install_dir%
