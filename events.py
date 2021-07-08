@@ -63,28 +63,14 @@ def subscribe(event_type, func, before=False, after=False):
         if event_type not in subscribers:
             subscribers[event_type] = set()
         subscribers[event_type].add(func)
-        # print('#' * 50)
-        # for func in subscribers[event_type]:
-        #     print(callable(func))
-        # print('#' * 50)
 
 
 def post_event(event_type, data, **kwargs):
     for sub in [subscribers_before, subscribers, subscribers_after]:
-        # print('='*50)
-        # print(f'Running event: {event_type}', data)
         if event_type not in sub:
             continue
-        # print('-'*50)
         for func in sub[event_type]:
-            # print('-' * 50)
-            # print(event_type)
-            # print('a', len(sub[event_type]))
-            # print('func', func, kwargs)
             func(data, **kwargs)
-            # print('b', len(sub[event_type]))
-            # for f in sub[event_type]:
-            #     print('--', f)
 
 
 def nr_subscribers(event_type):

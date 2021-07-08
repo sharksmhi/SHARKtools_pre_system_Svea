@@ -148,8 +148,6 @@ class App(PluginApp):
                 self.page_history.append(page)
         self.update()
 
-
-
     #===========================================================================
     def goto_previous_page(self, event):
         self.page_history
@@ -167,7 +165,6 @@ class App(PluginApp):
         Updates all information about loaded series. 
         """
         self.update_all()
-
 
     #===========================================================================
     def _get_title(self, page):

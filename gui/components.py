@@ -10,12 +10,8 @@ from operator import itemgetter
 
 from ..events import post_event
 from ..events import subscribe
-from ..events import EventTypes
 
 import sharkpylib.tklib.tkinter_widgets as tkw
-
-
-event_types = EventTypes()
 
 
 class AutocompleteCombobox(ttk.Combobox):
@@ -177,7 +173,6 @@ class AddSampInfo(tk.Frame):
         if not items:
             items = []
         self._update_rigth_widgets(items)
-
 
 
 class LabelDropdownList(tk.Frame):

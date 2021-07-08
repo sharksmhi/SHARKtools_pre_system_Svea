@@ -1025,7 +1025,12 @@ class FrameManageCTDcastsStation(tk.Frame):
 
     def _update_data_file_info(self, data):
         self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
-        self.data_file_info_frame.set_current_file(self.content_frame.get_current_file(server=False))
+        try:
+            self.data_file_info_frame.set_current_file(self.content_frame.get_current_file(server=False))
+        except ValueError as e:
+            if 'Missing information' in str(e):
+                return
+            raise
 
     def _update_frame(self):
         # self.instrument_text_frame.instrument = self.__instrument
