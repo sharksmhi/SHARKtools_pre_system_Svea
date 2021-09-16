@@ -664,8 +664,8 @@ class VesselLabelDoubleEntry(LabelDoubleEntry):
 
     def _modify(self):
         self._stringvar_first.set('Svea')
-        # self._stringvar_second.set('77SE')
-        self._stringvar_second.set('7710')
+        self._stringvar_second.set('77SE')
+        # self._stringvar_second.set('7710')
 
         self.entry_first.config(state='disabled', width=5)
         self.entry_second.config(state='disabled', width=5)

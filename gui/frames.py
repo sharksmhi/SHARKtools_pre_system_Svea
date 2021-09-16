@@ -167,9 +167,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         latest_series_path = self.controller.get_latest_series_path(**kwargs)
         return latest_series_path
 
-    def get_current_file(self, server=False):
-        kwargs = {'server': server,
-                  'instrument': self.instrument,
+    def get_current_file(self):
+        kwargs = {'instrument': self.instrument,
                   'ship': self._vessel.code,
                   'cruise': self._cruise.nr,
                   'serno': self._series.value}
@@ -352,8 +351,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
+            self._create_sensor_info_file()
             # self._time_disabled_widget(self._seasave.button, 30)
-            self._time_disabled_widget(self._seasave.button, program_running='Seasave.exe')
+            self._time_disabled_widget(self._seasave.button,
+                                       program_running='Seasave.exe',
+                                       # then_run=self._create_sensor_info_file
+                                       )
         except MissingInformationError as e:
             missing_string = '\n'.join(e.missing_list)
             messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas\n{missing_string}')
@@ -364,13 +367,16 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             messagebox.showerror('Run seasave', f'Något gick fel!\n{traceback.format_exc()}')
             raise
 
+    def _create_sensor_info_file(self):
+        self.controller.create_sensor_info_file(self.get_current_file())
+
     def _program_is_running(self, program):
         for p in psutil.process_iter():
             if p.name() == program:
                 return True
         return False
 
-    def _time_disabled_widget(self, widget, seconds=None, program_running=''):
+    def _time_disabled_widget(self, widget, seconds=None, program_running='', then_run=None):
         def sub_func():
             widget.config(state='disabled')
             if seconds:
@@ -382,6 +388,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 while running:
                     time.sleep(1)
                     running = self._program_is_running(program_running)
+                if then_run:
+                    then_run()
                 widget.config(state='normal')
 
         t = threading.Thread(target=sub_func)
@@ -635,7 +643,7 @@ class DataFileInfoFrame(tk.Frame):
         self._stringvar_current_file = tk.StringVar()
 
         r = 0
-        tk.Label(self, text='Senast fil:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, text='Senast fil på server:').grid(row=r, column=0, sticky='w', **layout)
         tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
@@ -693,19 +701,19 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         r = 0
         root_config = tk.Label(self, text='Rotkatalog för configfiler:')
         root_config.grid(row=r, column=0, sticky='w', **layout)
-        root_config.bind('<Control-Button-3>', self._on_click_root_config)
+        root_config.bind('<Control-Button-1>', self._on_click_root_config)
         tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
         root_data_local = tk.Label(self, text='Rotkatalog för data (lokal disk):')
         root_data_local.grid(row=r, column=0, sticky='w', **layout)
-        root_data_local.bind('<Control-Button-3>', self._on_click_root_data_local)
+        root_data_local.bind('<Control-Button-1>', self._on_click_root_data_local)
         tk.Label(self, textvariable=self._stringvar_data_root_path_local).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
         root_data_server = tk.Label(self, text='Rotkatalog för data (server):')
         root_data_server.grid(row=r, column=0, sticky='w', **layout)
-        root_data_server.bind('<Control-Button-3>', self._on_click_root_data_server)
+        root_data_server.bind('<Control-Button-1>', self._on_click_root_data_server)
         tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
@@ -756,14 +764,18 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         post_event('change_data_path_local', ok)
 
     def _on_click_root_data_server(self, event=None):
+        print(1)
         directory = filedialog.askdirectory()
         if not directory:
             return
+        print(2)
         ok = self._set_data_root_directory_server(directory)
         if ok:
+            print(3)
             self.save_selection()
             self.update_info()
         else:
+            print(4)
             self.reset_info()
         post_event('change_data_path_server', ok)
 
@@ -1026,7 +1038,7 @@ class FrameManageCTDcastsStation(tk.Frame):
     def _update_data_file_info(self, data):
         self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
         try:
-            self.data_file_info_frame.set_current_file(self.content_frame.get_current_file(server=False))
+            self.data_file_info_frame.set_current_file(self.content_frame.get_current_file())
         except ValueError as e:
             if 'Missing information' in str(e):
                 return

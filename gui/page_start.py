@@ -15,6 +15,7 @@ from pathlib import Path
 from . import components
 
 from pre_system_svea.controller import Controller
+from ctd_processing.paths import SBEPaths
 
 from ctd_processing.sensor_info import InstrumentFile
 
@@ -35,7 +36,8 @@ class PageStart(tk.Frame):
 
         self._current_instrument = None
 
-        self.controller = Controller()
+        self.sbe_paths = SBEPaths()
+        self.controller = Controller(paths_object=self.sbe_paths)
 
     def _add_subscribers(self):
         subscribe('select_instrument', self._on_select_instrument)
