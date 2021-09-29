@@ -19,10 +19,13 @@ from ..events import subscribe
 from ..events import print_subscribers
 
 from ..gui.translator import Translator
+from ..options import get_options
 
 TEXT_LJUST = 10
 
 translator = Translator()
+
+options = get_options()
 
 
 class MissingInformationError(Exception):
@@ -98,6 +101,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('button_svepa', self._on_return_load_svepa)
         subscribe('button_seasave', self._on_return_seasave)
 
+    def save_selection(self):
+        self._frame_metadata_admin.save_selection()
+        self._frame_metadata_conditions.save_selection()
+        super().save_selection()
+
     def _set_instrument(self, instrument):
         self.instrument = instrument
 
@@ -116,12 +124,18 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         frame_right = tk.Frame(frame)
         frame_right.grid(row=0, column=2)
 
-        # ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
+        ttk.Separator(frame, orient='vertical').grid(row=0, column=3, sticky='ns')
+
+        self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
+
+        ttk.Separator(frame, orient='vertical').grid(row=0, column=5, sticky='ns')
+
+        self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
 
         frame_bottom = tk.Frame(frame)
-        frame_bottom.grid(row=1, column=0, columnspan=3)
+        frame_bottom.grid(row=1, column=0, columnspan=7)
 
-        tkw.grid_configure(frame, nr_columns=2, nr_rows=2)
+        tkw.grid_configure(frame, nr_columns=7, nr_rows=2)
 
         self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get('_cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._series = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get('_series'), row=1, column=0, **layout)
@@ -351,7 +365,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
-            self._create_sensor_info_file()
             # self._time_disabled_widget(self._seasave.button, 30)
             self._time_disabled_widget(self._seasave.button,
                                        program_running='Seasave.exe',
@@ -366,9 +379,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         except:
             messagebox.showerror('Run seasave', f'Något gick fel!\n{traceback.format_exc()}')
             raise
-
-    def _create_sensor_info_file(self):
-        self.controller.create_sensor_info_file(self.get_current_file())
 
     def _program_is_running(self, program):
         for p in psutil.process_iter():
@@ -442,6 +452,142 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _set_parent_event_id(self, data):
         self._parent_event_id.value = data.get('parent_event_id', 'Ingen information från Svepa')
+
+
+class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
+
+    def __init__(self,
+                 parent,
+                 controller=None,
+                 **kwargs):
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+
+        self.controller = controller
+        self.instrument = None
+
+        self.grid(**self.grid_frame)
+
+        self._saves_id_key = 'MetadataAdminFrame'
+        self._selections_to_store = []
+
+        self._build_frame()
+
+        self._initiate_frame()
+
+        self.load_selection()
+
+    def _build_frame(self):
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, sticky='nw')
+        tkw.grid_configure(self)
+
+        layout = dict(padx=5, pady=2, sticky='nw')
+
+        text_ljust = 25
+
+        self._mprog = components.LabelDropdownList(frame, 'mprog', title=translator.get('_mprog').ljust(text_ljust), row=0, column=0, **layout)
+        self._proj = components.LabelDropdownList(frame, 'proj', title=translator.get('_proj').ljust(text_ljust), row=1, column=0, **layout)
+        self._orderer = components.LabelDropdownList(frame, 'orderer', title=translator.get('_orderer').ljust(text_ljust), row=2, column=0, **layout)
+        self._slabo = components.LabelDropdownList(frame, 'slabo', title=translator.get('_slabo').ljust(text_ljust), row=3, column=0, **layout)
+        self._alabo = components.LabelDropdownList(frame, 'alabo', title=translator.get('_alabo').ljust(text_ljust), row=4, column=0, **layout)
+
+        tkw.grid_configure(frame, nr_rows=5)
+
+        # Store selection
+        self._selections_to_store = ['_mprog', '_proj', '_orderer', '_slabo', '_alabo']
+
+    def _initiate_frame(self):
+        self._mprog.values = options.get('mprog')
+        self._proj.values = options.get('proj')
+        self._orderer.values = options.get('orderer')
+        self._slabo.values = options.get('slabo')
+        self._alabo.values = options.get('alabo')
+
+    def get_data(self):
+        data = dict(mprog=self._mprog.value,
+                    proj=self._proj.value,
+                    orderer=self._orderer.value,
+                    slabo=self._slabo.value,
+                    alabo=self._alabo.value)
+        return data
+
+
+class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
+
+    def __init__(self,
+                 parent,
+                 controller=None,
+                 **kwargs):
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+
+        self.controller = controller
+        self.instrument = None
+
+        self.grid(**self.grid_frame)
+
+        self._saves_id_key = 'MetadataConditionsFrame'
+        self._selections_to_store = []
+
+        self._build_frame()
+
+        self._initiate_frame()
+
+        self.load_selection()
+
+    def _build_frame(self):
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, sticky='nw')
+        tkw.grid_configure(self)
+
+        layout = dict(padx=5, pady=2, sticky='nw')
+
+        text_ljust = 25
+
+        self._wadep = components.IntEntry(frame, 'wadep', title=translator.get('_wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
+        self._windir = components.LabelDropdownList(frame, 'windir', title=translator.get('_windir').ljust(text_ljust), row=1, column=0, **layout)
+        self._windsp = components.IntEntry(frame, 'windsp', title=translator.get('_windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
+        self._airtemp = components.IntEntry(frame, 'airtemp', title=translator.get('_airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
+        self._airpres = components.IntEntry(frame, 'airpres', title=translator.get('_airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
+        self._weather = components.LabelDropdownList(frame, 'weather', title=translator.get('_weather').ljust(text_ljust), row=5, column=0, **layout)
+        self._cloud = components.LabelDropdownList(frame, 'cloud', title=translator.get('_cloud').ljust(text_ljust), row=6, column=0, **layout)
+        self._waves = components.LabelDropdownList(frame, 'waves', title=translator.get('_waves').ljust(text_ljust), row=7, column=0, **layout)
+        self._ice = components.LabelDropdownList(frame, 'ice', title=translator.get('_ice').ljust(text_ljust), row=8, column=0, **layout)
+        self._comment = components.LabelEntry(frame, 'comment', title=translator.get('_comment').ljust(5), width=25, row=9, column=0, **layout)
+
+        tkw.grid_configure(frame, nr_rows=10)
+
+        # Store selection
+        self._selections_to_store = ['_windir', '_windsp', '_aritemp', '_airpres', '_weather', '_cloud', '_waves', '_ice']
+
+    def _initiate_frame(self):
+        self._windir.values = [str(i).zfill(2) for i in range(37)] + ['99']
+        self._weather.values = options.get('weather')
+        self._cloud.values = options.get('cloud')
+        self._waves.values = options.get('waves')
+        self._ice.values = options.get('ice')
+
+    def get_data(self):
+        data = dict(wadep=self._wadep.value,
+                    windir=self._windir.value,
+                    windsp=self._windsp.value,
+                    airtemp=self._airtemp.value,
+                    airpres=self._airpres.value,
+                    weather=self._weather.value,
+                    cloud=self._cloud.value,
+                    waves=self._waves.value,
+                    ice=self._ice.value,
+                    comment=self._comment.value)
+        return data
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):

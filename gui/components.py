@@ -221,7 +221,7 @@ class LabelDropdownList(tk.Frame):
         self.combobox.bind("<<ComboboxSelected>>", self._on_select)
         self.combobox.bind("<<FocusIn>>", self._on_focus_in)
         self.combobox.bind("<<FocusOut>>", self._on_focus_out)
-        self.combobox.grid(row=0, column=1, padx=5, pady=5, sticky='w')
+        self.combobox.grid(row=0, column=1, padx=5, pady=5, sticky='e')
 
         tkw.grid_configure(self, nr_columns=2)
 
@@ -652,6 +652,88 @@ class DepthEntry(tk.Frame):
             self.step = 25
 
         return (math.ceil(depth / self.step)) * self.step
+
+
+class IntEntry(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 width=8,
+                 title='IntEntry',
+                 state='normal',
+                 min_value=None,
+                 max_value=None,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self._id = id
+        self.title = title
+        self.width = width
+        self.state = state
+        self.min_value = min_value
+        self.max_value = max_value
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+
+        self._stringvar = tk.StringVar()
+        # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
+        self._stringvar.trace("w", self._on_change_entry)
+
+        self.entry = tk.Entry(self, textvariable=self._stringvar, width=self.width)
+        self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.bind('<Return>', self._on_focus_out)
+        self.entry.grid(row=0, column=1, pady=(5, 0), padx=5, sticky='e')
+        self.entry.configure(state=self.state)
+
+        tkw.grid_configure(self, nr_columns=2)
+
+    def _on_focus_out(self, *args):
+        string = self._stringvar.get()
+        print('string', string)
+        if string:
+            if self.min_value is not None and int(string) < self.min_value:
+                string = str(self.min_value)
+            if self.max_value is not None and int(string) > self.max_value:
+                string = str(self.max_value)
+            self._stringvar.set(string)
+        post_event(f'focus_out_{self._id}', self.value)
+
+    def _on_change_entry(self, *args):
+        string = self._stringvar.get()
+        string = ''.join([s for s in string if s.isdigit()])
+        self._stringvar.set(string)
+
+    @property
+    def value(self):
+        return self._stringvar.get()
+
+    @value.setter
+    def value(self, value):
+        if not value and value is not 0:
+            self._stringvar.set('')
+            return
+        self._stringvar.set(str(value))
+        self._on_change_entry()
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
 
 
 class VesselLabelDoubleEntry(LabelDoubleEntry):
