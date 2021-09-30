@@ -19,16 +19,16 @@ class Translator:
              '_slabo':   'Provtagande laboratorium',
              '_alabo':   'Analyserande laboratorium',
 
-             '_wadep': 'Vattendjup vid sation [m]',
-             '_windir': 'Vindriktning',
-             '_windsp': 'Vindhastighet [m/s]',
-             '_airtemp': 'Vindtemperatur [grader C]',
-             '_airpres': 'Lufttryck [hPa]',
-             '_weather': 'Väder [kod]',
-             '_cloud': 'Moln [kod]',
-             '_waves': 'Vågor [kod]',
-             '_ice': 'Is [kod]',
-             '_comment': 'CTD kommentar'}
+             'wadep': 'Vattendjup vid station [m]',
+             'windir': 'Vindriktning',
+             'windsp': 'Vindhastighet [m/s]',
+             'airtemp': 'Vindtemperatur [grader C]',
+             'airpres': 'Lufttryck [hPa]',
+             'weather': 'Väder [kod]',
+             'cloud': 'Moln [kod]',
+             'waves': 'Vågor [kod]',
+             'ice': 'Is [kod]',
+             'comment': 'CTD kommentar'}
 
     def get(self, item):
         return self.names.get(item, item)

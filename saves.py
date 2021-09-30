@@ -44,21 +44,38 @@ class SaveSelection:
 
     def save_selection(self):
         data = {}
-        for comp in self._selections_to_store:
-            try:
-                data[comp] = getattr(self, comp).get()
-            except:
-                pass
+        if type(self._selections_to_store) == dict:
+            for name, comp in self._selections_to_store.items():
+                try:
+                    data[name] = comp.get()
+                except:
+                    pass
+        else:
+            for comp in self._selections_to_store:
+                try:
+                    data[comp] = getattr(self, comp).get()
+                except:
+                    pass
         self._saves.set(self._saves_id_key, data)
 
     def load_selection(self):
         data = self._saves.get(self._saves_id_key)
-        for comp in self._selections_to_store:
-            try:
-                item = data.get(comp, None)
-                if item is None:
-                    continue
-                getattr(self, comp).set(item)
-            except:
-                pass
+        if type(self._selections_to_store) == dict:
+            for name, comp in self._selections_to_store.items():
+                try:
+                    value = data.get(name, None)
+                    if value is None:
+                        continue
+                    comp.set(value)
+                except:
+                    pass
+        else:
+            for comp in self._selections_to_store:
+                try:
+                    value = data.get(comp, None)
+                    if value is None:
+                        continue
+                    getattr(self, comp).set(value)
+                except:
+                    pass
 

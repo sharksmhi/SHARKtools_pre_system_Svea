@@ -26,7 +26,8 @@ class EventTypes:
                 'focus_out_cruise',
                 'set_next_series',
                 'series_step',
-                'load_svepa'
+                'load_svepa',
+                'missing_input'
             ]
         for item in self.event_types:
             setattr(self, item, item)

@@ -328,7 +328,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         attrs = {self._cruise: self._cruise.nr,
                  self._vessel: self._vessel.code}
 
-        # if not all([depth, bin_size, cruise_nr, ship_code, serno, lat, lon, station, operator]):
+        metadata_admin = self._frame_metadata_admin.get_data()
+        metadata_conditions = self._frame_metadata_conditions.get_data()
+
         missing = []
         for obj in [self._depth, self._bin_size, self._cruise, self._vessel, self._series, self._station, self._operator]:
             if obj in attrs:
@@ -338,7 +340,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 if not obj.value:
                     missing.append((obj._id.capitalize()))
 
+        missing.extend([key.upper() for key, value in metadata_admin.items() if not value])
+        missing.extend([key.upper() for key, value in metadata_conditions.items() if not value])
+
         if missing:
+            post_event('missing_input', missing)
             raise MissingInformationError(missing_list=missing)
 
         nr_bins = int(float(depth) / float(bin_size))
@@ -544,6 +550,9 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self.load_selection()
 
+        subscribe('missing_input', self._missing_input)
+        subscribe('input_ok', self._input_ok)
+
     def _build_frame(self):
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, sticky='nw')
@@ -553,41 +562,50 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         text_ljust = 25
 
-        self._wadep = components.IntEntry(frame, 'wadep', title=translator.get('_wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
-        self._windir = components.LabelDropdownList(frame, 'windir', title=translator.get('_windir').ljust(text_ljust), row=1, column=0, **layout)
-        self._windsp = components.IntEntry(frame, 'windsp', title=translator.get('_windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
-        self._airtemp = components.IntEntry(frame, 'airtemp', title=translator.get('_airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
-        self._airpres = components.IntEntry(frame, 'airpres', title=translator.get('_airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
-        self._weather = components.LabelDropdownList(frame, 'weather', title=translator.get('_weather').ljust(text_ljust), row=5, column=0, **layout)
-        self._cloud = components.LabelDropdownList(frame, 'cloud', title=translator.get('_cloud').ljust(text_ljust), row=6, column=0, **layout)
-        self._waves = components.LabelDropdownList(frame, 'waves', title=translator.get('_waves').ljust(text_ljust), row=7, column=0, **layout)
-        self._ice = components.LabelDropdownList(frame, 'ice', title=translator.get('_ice').ljust(text_ljust), row=8, column=0, **layout)
-        self._comment = components.LabelEntry(frame, 'comment', title=translator.get('_comment').ljust(5), width=25, row=9, column=0, **layout)
+        self._components = {}
+        self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
+        self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get('windir').ljust(text_ljust), row=1, column=0, **layout)
+        self._components['windsp'] = components.IntEntry(frame, 'windsp', title=translator.get('windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
+        self._components['airtemp'] = components.IntEntry(frame, 'airtemp', title=translator.get('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
+        self._components['airpres'] = components.IntEntry(frame, 'airpres', title=translator.get('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
+        self._components['weather'] = components.LabelDropdownList(frame, 'weather', title=translator.get('weather').ljust(text_ljust), row=5, column=0, **layout)
+        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get('cloud').ljust(text_ljust), row=6, column=0, **layout)
+        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get('waves').ljust(text_ljust), row=7, column=0, **layout)
+        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get('ice').ljust(text_ljust), row=8, column=0, **layout)
+        self._components['comment'] = components.LabelEntry(frame, 'comment', title=translator.get('comment').ljust(5), width=25, row=9, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=10)
 
         # Store selection
-        self._selections_to_store = ['_windir', '_windsp', '_aritemp', '_airpres', '_weather', '_cloud', '_waves', '_ice']
+        to_store = ['windir', 'windsp', 'aritemp', 'airpres', 'weather', 'cloud', 'waves', 'iceob']
+        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _initiate_frame(self):
-        self._windir.values = [str(i).zfill(2) for i in range(37)] + ['99']
-        self._weather.values = options.get('weather')
-        self._cloud.values = options.get('cloud')
-        self._waves.values = options.get('waves')
-        self._ice.values = options.get('ice')
+        self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
+        self._components['weather'].values = options.get('weather')
+        self._components['cloud'].values = options.get('cloud')
+        self._components['waves'].values = options.get('waves')
+        self._components['iceob'].values = options.get('ice')
 
     def get_data(self):
-        data = dict(wadep=self._wadep.value,
-                    windir=self._windir.value,
-                    windsp=self._windsp.value,
-                    airtemp=self._airtemp.value,
-                    airpres=self._airpres.value,
-                    weather=self._weather.value,
-                    cloud=self._cloud.value,
-                    waves=self._waves.value,
-                    ice=self._ice.value,
-                    comment=self._comment.value)
+        data = {key: comp.value for key, comp in self._components.items()}
+        # data = dict(wadep=self._wadep.value,
+        #             windir=self._windir.value,
+        #             windsp=self._windsp.value,
+        #             airtemp=self._airtemp.value,
+        #             airpres=self._airpres.value,
+        #             weather=self._weather.value,
+        #             cloud=self._cloud.value,
+        #             waves=self._waves.value,
+        #             ice=self._ice.value,
+        #             comment=self._comment.value)
         return data
+
+    def _missing_input(self, missing):
+
+
+    def _input_ok(self, *args):
+        pass
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):

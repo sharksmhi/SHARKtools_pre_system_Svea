@@ -81,6 +81,9 @@ class MonospaceLabel(tk.Label):
         super().__init__(parent, **kwargs)
         # self.config(font=("Courier", 10))
         self.config(font='TkFixedFont')
+        
+    def set_color(self, color='black'):
+        self.configure(fg=color)
 
 
 class ColoredFrame(tk.Frame):
@@ -135,7 +138,8 @@ class AddSampInfo(tk.Frame):
         layout = dict(padx=2,
                       pady=5,
                       sticky='nw')
-        MonospaceLabel(self, text=self.title).grid(row=0, column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self.right_frame = tk.Frame(self)
         self.right_frame.grid(row=0, column=1, **layout)
@@ -211,7 +215,8 @@ class LabelDropdownList(tk.Frame):
         #               pady=5,
         #               sticky='nsew')
         # tk.Label(self, text=self.title).grid(column=0, padx=5, pady=5, sticky='w')
-        MonospaceLabel(self, text=self.title).grid(column=0, padx=5, pady=5, sticky='w')
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, padx=5, pady=5, sticky='w')
 
         self._stringvar = tk.StringVar()
         if self.autocomplete:
@@ -315,7 +320,8 @@ class LabelEntry(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self._stringvar = tk.StringVar()
         # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
@@ -397,7 +403,8 @@ class LabelDoubleEntry(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self._stringvar_first = tk.StringVar()
         self._stringvar_second = tk.StringVar()
@@ -569,7 +576,8 @@ class DepthEntry(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self._stringvar = tk.StringVar()
         # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
@@ -687,7 +695,8 @@ class IntEntry(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self._stringvar = tk.StringVar()
         # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
@@ -798,7 +807,7 @@ class SelectDirectory(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-#        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+#        self.monospace_label = MonospaceLabel(self, text=self.title).grid(column=0, **layout)
 
         tk.Label(self, text=self.title).grid(row=0, column=0, padx=0, pady=5, sticky='w')
         self._stringvar = tk.StringVar()
@@ -855,7 +864,8 @@ class SelectedInstrumentTextFrame(tk.Frame):
 
         self._stringvar = tk.StringVar()
 
-        MonospaceLabel(self, textvariable=self._stringvar).grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.monospace_label = MonospaceLabel(self, textvariable=self._stringvar)
+        self.monospace_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
 
         subscribe('confirm_sensors', self.set)
 
@@ -913,7 +923,8 @@ class SeriesEntryPicker(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text=self.title).grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
 
         self._stringvar = tk.StringVar()
         self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
@@ -1035,7 +1046,8 @@ class SurfaceSoakSelector(tk.Frame):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text='Soak').grid(column=0, **layout)
+        self.monospace_label = MonospaceLabel(self, text='Soak')
+        self.monospace_label.grid(column=0, **layout)
         self.buttons['normal'] = tk.Button(self, text='Normal', command=lambda x='normal': self._on_select_button(x))
         self.buttons['normal'].grid(row=0, column=1, **layout)
         self.buttons['deep'] = tk.Button(self, text='Deep', command=lambda x='deep': self._on_select_button(x))
@@ -1414,7 +1426,8 @@ class LabelCheckbox(tk.Frame):
         self.checkbutton = tk.Checkbutton(self, variable=self.intvar, command=self._on_toggle)
         self.checkbutton.grid(row=0, column=0, **layout)
 
-        MonospaceLabel(self, text=self.title).grid(row=0, column=1, **layout)
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=1, **layout)
 
     def _on_toggle(self, *args):
         print(self.intvar.get())
