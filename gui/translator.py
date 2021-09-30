@@ -1,17 +1,17 @@
 
 
 class Translator:
-    names = {'_depth': 'Plotdjup',
-             '_bin_size': 'Bin-storlek',
-             '_cruise': 'Cruise',
-             '_vessel': 'Fartyg',
-             '_series': 'Serie',
-             '_station': 'Station',
-             '_distance': 'Avstånd station (m)',
-             '_operator': 'Operator',
-             '_position': 'Position',
-             '_event_id': 'EventID      ',
-             '_parent_event_id': 'ParentEventID',
+    names = {'depth': 'Plotdjup',
+             'bin_size': 'Bin-storlek',
+             'cruise': 'Cruise',
+             'vessel': 'Fartyg',
+             'series': 'Serie',
+             'station': 'Station',
+             'distance': 'Avstånd station (m)',
+             'operator': 'Operator',
+             'position': 'Position',
+             'event_id': 'EventID      ',
+             'parent_event_id': 'ParentEventID',
 
              'mprog':   'Övervakningsprogram',
              'proj':    'Projekt',
@@ -27,8 +27,14 @@ class Translator:
              'weather': 'Väder [kod]',
              'cloud': 'Moln [kod]',
              'waves': 'Vågor [kod]',
-             'ice': 'Is [kod]',
+             'iceob': 'Is [kod]',
              'comment': 'CTD kommentar'}
 
-    def get(self, item):
+    def __init__(self):
+        self.reversed_names = {value: key for key, value in self.names.items()}
+
+    def get_readable(self, item):
         return self.names.get(item, item)
+
+    def get_id(self, item):
+        return self.reversed_names.get(item, item)

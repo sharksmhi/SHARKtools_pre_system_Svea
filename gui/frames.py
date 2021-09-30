@@ -141,34 +141,33 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame, nr_columns=7, nr_rows=2)
 
         self._components = {}
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get_readable('series'), row=1, column=0, **layout)
+        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=25, autocomplete=True, row=2, column=0, **layout)
+        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
+        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
+        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
 
-        self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get('_cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._series = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get('_series'), row=1, column=0, **layout)
-        self._station = components.LabelDropdownList(frame_left, 'station', title=translator.get('_station'), width=25, autocomplete=True, row=2, column=0, **layout)
-        self._distance = components.LabelEntry(frame_left, 'distance',  title=translator.get('_distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
-        self._depth = components.DepthEntry(frame_left, 'depth', title=translator.get('_depth').ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
-        self._bin_size = components.LabelEntry(frame_left, 'bin_size', title=translator.get('_bin_size').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
+        self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._components['position'] = components.PositionEntries(frame_right, 'position', row=2, column=0, **layout)
+        self._components['add_samp'] = components.AddSampInfo(frame_right, 'add_samp', row=3, column=0, **layout)
+        self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',  title=translator.get_readable('event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
+        self._components['parent_event_id'] = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get_readable('parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
 
-        self._vessel = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get('_vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame_right, 'operator', title=translator.get('_operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._position = components.PositionEntries(frame_right, 'position', row=2, column=0, **layout)
-        self._add_samp = components.AddSampInfo(frame_right, 'add_samp', row=3, column=0, **layout)
-        self._event_id = components.LabelEntry(frame_right, 'event_id',  title=translator.get('_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
-        self._parent_event_id = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get('_parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
-
-        self._svepa = components.CallbackButton(frame_bottom, 'svepa', title='Load SVEPA', row=0, column=0, **layout)
-        self._validate = components.CallbackButton(frame_bottom, 'validate', title='Validate', row=0, column=1, **layout)
-        self._validate.button.config(state='disabled')
-        self._seasave = components.CallbackButton(frame_bottom, 'seasave', title='Run Seasave', row=0, column=2, **layout)
-        self._seasave.button.config(bg='#6691bd')
+        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Load SVEPA', row=0, column=0, **layout)
+        self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validate', row=0, column=1, **layout)
+        self._components['validate'].button.config(state='disabled')
+        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Run Seasave', row=0, column=2, **layout)
+        self._components['seasave'].button.config(bg='#6691bd')
 
         tkw.grid_configure(frame_left, nr_rows=6)
         tkw.grid_configure(frame_right, nr_rows=4)
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Store selection
-        self._selections_to_store = ['_cruise', '_operator',
-                                     '_vessel', '_bin_size']
+        to_store = ['cruise', 'operator', 'vessel', 'bin_size']
+        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _temp(self, dummy):
         print_subscribers()
@@ -186,23 +185,23 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             comp.set_color()
 
     def _initiate_frame(self):
-        self._station.values = self.get_station_list()
-        self._operator.values = self.get_operator_list()
+        self._components['station'].values = self.get_station_list()
+        self._components['operator'].values = self.get_operator_list()
 
     def get_latest_file(self, server=False):
         kwargs = {'server': server,
-                  'year': self._cruise.year,
-                  'ship': self._vessel.code,
-                  'cruise': self._cruise.nr}
+                  'year': self._components['cruise'].year,
+                  'ship': self._components['vessel'].code,
+                  'cruise': self._components['cruise'].nr}
         print('frames.get_latest_file kwargs', kwargs)
         latest_series_path = self.controller.get_latest_series_path(**kwargs)
         return latest_series_path
 
     def get_current_file(self):
         kwargs = {'instrument': self.instrument,
-                  'ship': self._vessel.code,
-                  'cruise': self._cruise.nr,
-                  'serno': self._series.value}
+                  'ship': self._components['vessel'].code,
+                  'cruise': self._components['cruise'].nr,
+                  'serno': self._components['series'].value}
         current_file_path = self.controller.get_data_file_path(**kwargs)
         return current_file_path
 
@@ -211,19 +210,19 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         Search for the last known series and sets the next one.
         :return:
         """
-        cruise, year = self._cruise.get()
-        ship_name, ship_code = self._vessel.get()
+        cruise, year = self._components['cruise'].get()
+        ship_name, ship_code = self._components['vessel'].get()
         next_serno = self.controller.get_next_serno(server=True,
                                                     cruise=cruise,
                                                     year=year,
                                                     ship=ship_code)
-        self._series.set(next_serno)
+        self._components['series'].set(next_serno)
         post_event('set_next_series', next_serno)
 
     def _on_focus_out_series(self, serno):
         print('_on_focus_out_series', serno)
-        cruise, year = self._cruise.get()
-        ship_name, ship_code = self._vessel.get()
+        cruise, year = self._components['cruise'].get()
+        ship_name, ship_code = self._components['vessel'].get()
         series = self.controller.series_exists(server=True,
                                                 cruise=cruise,
                                                 year=year,
@@ -235,21 +234,21 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             messagebox.showwarning(f'Series already exists', f'{series}')
 
     def _on_select_station(self, station_name, *args, **kwargs):
-        # station_name = self._station.value
+        # station_name = self._components['station'].value
         station_info = self.controller.get_station_info(station_name)
         if not station_info:
-            self._depth.water_depth = ''
-            self._distance.value = ''
+            self._components['depth'].water_depth = ''
+            self._components['distance'].value = ''
             return
-        self._station.value = station_info.get('station') # Could have been a synonym
-        self._position.lat = station_info.get('lat', '')
-        self._position.lon = station_info.get('lon', '')
-        self._depth.water_depth = str(station_info.get('depth'))
-        self._position.source = 'Nominal'
-        self._distance.value = 0
-        self._event_id.value = ''
-        self._parent_event_id.value = ''
-        self._add_samp.value = None
+        self._components['station'].value = station_info.get('station') # Could have been a synonym
+        self._components['position'].lat = station_info.get('lat', '')
+        self._components['position'].lon = station_info.get('lon', '')
+        self._components['depth'].water_depth = str(station_info.get('depth'))
+        self._components['position'].source = 'Nominal'
+        self._components['distance'].value = 0
+        self._components['event_id'].value = ''
+        self._components['parent_event_id'].value = ''
+        self._components['add_samp'].value = None
         self._on_focus_out_depth()
         self.save_selection()
 
@@ -260,15 +259,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # Check position against station list
         station_info = self.controller.get_closest_station(float(lat), float(lon))
         if not station_info:
-            self._station.value = ''
-            self._distance.value = ''
+            self._components['station'].value = ''
+            self._components['distance'].value = ''
             return False
         if station_info['acceptable']:
             ok = messagebox.askyesno('Station hittad', f'Positionen ({lat}, {lon}) matchar station: {station_info.get("station", "<No name>")}\n'
                                                        f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.')
-            self._station.value = station_info.get('station', '')
-            self._depth.water_depth = station_info.get('depth', '')
-            self._distance.value = station_info.get('distance', '')
+            self._components['station'].value = station_info.get('station', '')
+            self._components['depth'].water_depth = station_info.get('depth', '')
+            self._components['distance'].value = station_info.get('distance', '')
         else:
             ok = messagebox.askyesno(f'Ingen station matchar positionen',
                                      f'Position: ({lat}, {lon})\n'
@@ -276,46 +275,46 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                      f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.\n'
                                      f'Är detta en ny station?')
             if ok:
-                self._station.value = ''
-                self._depth.water_depth = ''
-                self._distance.value = station_info.get('distance', '')
+                self._components['station'].value = ''
+                self._components['depth'].water_depth = ''
+                self._components['distance'].value = station_info.get('distance', '')
             else:
-                self._station.value = ''
-                self._depth.water_depth = ''
-                self._distance.value = ''
+                self._components['station'].value = ''
+                self._components['depth'].water_depth = ''
+                self._components['distance'].value = ''
 
-        self._position.source = 'Manual'
+        self._components['position'].source = 'Manual'
         return True
 
     def _on_focus_out_depth(self, *args):
         # Set bin size
-        plot_depth = self._depth.value
+        plot_depth = self._components['depth'].value
         if not plot_depth:
             return
         plot_depth = int(plot_depth)
         if plot_depth > 100 and not plot_depth % 25:
-            self._bin_size.value = 25
+            self._components['bin_size'].value = 25
         elif plot_depth != 10 and not plot_depth % 10:
-            self._bin_size.value = 10
+            self._components['bin_size'].value = 10
         else:
-            self._bin_size.value = 5
+            self._components['bin_size'].value = 5
 
     def _on_select_bin_size(self, *args):
         nr_bins = self.get_nr_bins()
         if nr_bins == int(nr_bins):
             return
 
-        water_depth = float(self._depth.value)
-        step = self._depth.step
+        water_depth = float(self._components['depth'].value)
+        step = self._components['depth'].step
 
         sum_depth = 0
         while sum_depth < water_depth:
             sum_depth += step
-        self._depth.value = sum_depth
+        self._components['depth'].value = sum_depth
 
     def get_nr_bins(self):
-        bin_size = self._bin_size.value
-        plot_depth = self._depth.value
+        bin_size = self._components['bin_size'].value
+        plot_depth = self._components['depth'].value
         if not all([bin_size, plot_depth]):
             return None
         return float(plot_depth) / int(bin_size)
@@ -328,42 +327,44 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         pass
 
     def _modify_seasave_file(self):
-        depth = self._depth.value
-        bin_size = self._bin_size.value
-        cruise_nr = self._cruise.nr
-        ship_code = self._vessel.code
-        serno = self._series.value
-        station = self._station.value
-        operator = self._operator.value
-        lat = self._position.lat
-        lon = self._position.lon
-        pos_source = self._position.source
-        event_id = self._event_id.value
-        parent_event_id = self._parent_event_id.value
-        add_samp = ', '.join(self._add_samp.value)
+        depth = self._components['depth'].value
+        bin_size = self._components['bin_size'].value
+        cruise_nr = self._components['cruise'].nr
+        ship_code = self._components['vessel'].code
+        serno = self._components['series'].value
+        station = self._components['station'].value
+        operator = self._components['operator'].value
+        lat = self._components['position'].lat
+        lon = self._components['position'].lon
+        pos_source = self._components['position'].source
+        event_id = self._components['event_id'].value
+        parent_event_id = self._components['parent_event_id'].value
+        add_samp = ', '.join(self._components['add_samp'].value)
 
-        attrs = {self._cruise: self._cruise.nr,
-                 self._vessel: self._vessel.code}
+        attrs = {self._components['cruise']: self._components['cruise'].nr,
+                 self._components['vessel']: self._components['vessel'].code}
 
         metadata_admin = self._frame_metadata_admin.get_data()
         metadata_conditions = self._frame_metadata_conditions.get_data()
 
         missing = []
-        for obj in [self._depth, self._bin_size, self._cruise, self._vessel, self._series, self._station, self._operator]:
+        for obj in [self._components['depth'], self._components['bin_size'], self._components['cruise'], 
+                    self._components['vessel'], self._components['series'], self._components['station'], 
+                    self._components['operator']]:
             if obj in attrs:
                 if not attrs.get(obj):
-                    missing.append(obj._id.capitalize())
+                    missing.append(obj._id)
             else:
                 if not obj.value:
-                    missing.append((obj._id.capitalize()))
+                    missing.append(obj._id)
 
-        missing.extend([key.upper() for key, value in metadata_admin.items() if not value])
-        missing.extend([key.upper() for key, value in metadata_conditions.items() if not value])
+        missing.extend([key for key, value in metadata_admin.items() if not value])
+        missing.extend([key for key, value in metadata_conditions.items() if not value])
 
         post_event('input_ok', missing)
         if missing:
             post_event('missing_input', missing)
-            raise MissingInformationError(missing_list=missing)
+            raise MissingInformationError(missing_list=[translator.get_readable(item) for item in missing])
 
         nr_bins = int(float(depth) / float(bin_size))
 
@@ -389,14 +390,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
-            # self._time_disabled_widget(self._seasave.button, 30)
-            self._time_disabled_widget(self._seasave.button,
+            # self._time_disabled_widget(self._components['seasave'].button, 30)
+            self._time_disabled_widget(self._components['seasave'].button,
                                        program_running='Seasave.exe',
                                        # then_run=self._create_sensor_info_file
                                        )
         except MissingInformationError as e:
             missing_string = '\n'.join(e.missing_list)
-            messagebox.showerror('Run seasave', f'Kan inte köra Seasave.\nInformation saknas\n{missing_string}')
+            messagebox.showerror('Run seasave', f'Kan inte köra Seasave!\nFöljande information saknas:\n\n{missing_string}')
             return
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
@@ -435,7 +436,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         Check if the station name is valid
         :return:
         """
-        station_name = self._station.value
+        station_name = self._components['station'].value
         station_info = self.controller.get_station_info(station_name)
         if not station_info:
             return False
@@ -447,17 +448,17 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             if not data.get('ctd_station_started'):
                 messagebox.showwarning('Loading information from Svepa', 'No CTD event is running on Svepa!')
 
-            self._series.value = data.get('serno')
-            self._station.value = data.get('station', '')
-            self._cruise.nr = data.get('cruise')
+            self._components['series'].value = data.get('serno')
+            self._components['station'].value = data.get('station', '')
+            self._components['cruise'].nr = data.get('cruise')
 
             lat = str(data.get('lat'))
             lon = str(data.get('lon'))
             ok = self._on_return_position([lat, lon])
             if ok:
-                self._position.lat = lat
-                self._position.lon = lon
-                self._position.source = 'Svepa'
+                self._components['position'].lat = lat
+                self._components['position'].lon = lon
+                self._components['position'].source = 'Svepa'
 
             self._set_event_id(data)
             self._set_parent_event_id(data)
@@ -472,10 +473,10 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             messagebox.showerror('Load information from Svepa', traceback.format_exc())
 
     def _set_event_id(self, data):
-        self._event_id.value = data.get('event_id', 'Ingen information från Svepa')
+        self._components['event_id'].value = data.get('event_id', 'Ingen information från Svepa')
 
     def _set_parent_event_id(self, data):
-        self._parent_event_id.value = data.get('parent_event_id', 'Ingen information från Svepa')
+        self._components['parent_event_id'].value = data.get('parent_event_id', 'Ingen information från Svepa')
 
 
 class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -518,11 +519,11 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         text_ljust = 25
 
         self._components = {}
-        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get('mprog').ljust(text_ljust), row=0, column=0, **layout)
-        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get('proj').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get('orderer').ljust(text_ljust), row=2, column=0, **layout)
-        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get('slabo').ljust(text_ljust), row=3, column=0, **layout)
-        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get('alabo').ljust(text_ljust), row=4, column=0, **layout)
+        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get_readable('mprog').ljust(text_ljust), row=0, column=0, **layout)
+        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get_readable('proj').ljust(text_ljust), row=1, column=0, **layout)
+        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get_readable('orderer').ljust(text_ljust), row=2, column=0, **layout)
+        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get_readable('slabo').ljust(text_ljust), row=3, column=0, **layout)
+        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get_readable('alabo').ljust(text_ljust), row=4, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=5)
 
@@ -591,16 +592,16 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         text_ljust = 25
 
         self._components = {}
-        self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
-        self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get('windir').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['windsp'] = components.IntEntry(frame, 'windsp', title=translator.get('windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
-        self._components['airtemp'] = components.IntEntry(frame, 'airtemp', title=translator.get('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
-        self._components['airpres'] = components.IntEntry(frame, 'airpres', title=translator.get('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
-        self._components['weather'] = components.LabelDropdownList(frame, 'weather', title=translator.get('weather').ljust(text_ljust), row=5, column=0, **layout)
-        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get('cloud').ljust(text_ljust), row=6, column=0, **layout)
-        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get('waves').ljust(text_ljust), row=7, column=0, **layout)
-        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get('ice').ljust(text_ljust), row=8, column=0, **layout)
-        self._components['comment'] = components.LabelEntry(frame, 'comment', title=translator.get('comment').ljust(5), width=25, row=9, column=0, **layout)
+        self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get_readable('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
+        self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get_readable('windir').ljust(text_ljust), row=1, column=0, **layout)
+        self._components['windsp'] = components.IntEntry(frame, 'windsp', title=translator.get_readable('windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
+        self._components['airtemp'] = components.IntEntry(frame, 'airtemp', title=translator.get_readable('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
+        self._components['airpres'] = components.IntEntry(frame, 'airpres', title=translator.get_readable('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
+        self._components['weather'] = components.LabelDropdownList(frame, 'weather', title=translator.get_readable('weather').ljust(text_ljust), row=5, column=0, **layout)
+        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=6, column=0, **layout)
+        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=7, column=0, **layout)
+        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=8, column=0, **layout)
+        self._components['comment'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=25, row=9, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=10)
 
@@ -666,12 +667,12 @@ class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         layout = dict(padx=5, pady=5, sticky='nw')
 
-        self._cruise = components.CruiseLabelDoubleEntry(frame, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._series = components.SeriesEntryPicker(frame, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
         self._transect = components.LabelDropdownList(frame, 'transect',  title='Transect'.ljust(TEXT_LJUST), width=15, row=2, column=0, **layout)
-        self._operator = components.LabelDropdownList(frame, 'operator', title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
+        self._components['operator'] = components.LabelDropdownList(frame, 'operator', title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
 
-        self._vessel = components.VesselLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
+        self._components['vessel'] = components.VesselLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
         self._new_transect = components.LabelCheckbox(frame, title='New transect'.ljust(TEXT_LJUST), row=1, column=1, **layout)
 
         tkw.grid_configure(frame, nr_rows=5, nr_columns=2)
@@ -685,7 +686,7 @@ class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _initiate_frame(self):
         self._transect.values = get_transect_list()
-        self._operator.values = self.get_operator_list()
+        self._components['operator'].values = self.get_operator_list()
 
     def _on_select_transect(self, *args):
         print(args)
