@@ -50,9 +50,11 @@ class PageStart(tk.Frame):
     def startup(self):
         self._create_frame()
         self._add_subscribers()
-
-        self.controller.ctd_config_root_directory = self._frame_select_instrument.config_root_directory
-        self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory_local
+        try:
+            self.controller.ctd_config_root_directory = self._frame_select_instrument.config_root_directory
+            self.controller.ctd_data_root_directory = self._frame_select_instrument.data_root_directory_local
+        except FileNotFoundError:
+            pass
 
     def close(self):
         self._frame_manage_ctd_casts.save_selection()

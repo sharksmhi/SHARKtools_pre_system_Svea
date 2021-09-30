@@ -605,6 +605,7 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
 
         for key in ['weath', 'cloud', 'waves', 'iceob']:
+            print('options.get(key)', options.get(key))
             self._components[key].values = options.get(key)
 
     def get_data(self):
@@ -985,6 +986,8 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         try:
             self.controller.ctd_config_root_directory = directory
             self._stringvar_config_root_path.set(directory or '')
+        except FileNotFoundError:
+            raise
         except:
             messagebox.showerror('Val av instrument',
                                  f'Rotkatalogens struktur för configfiler verkar inte stämma: '
