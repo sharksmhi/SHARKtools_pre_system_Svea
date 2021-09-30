@@ -27,7 +27,8 @@ class EventTypes:
                 'set_next_series',
                 'series_step',
                 'load_svepa',
-                'missing_input'
+                'missing_input',
+                'input_ok'
             ]
         for item in self.event_types:
             setattr(self, item, item)

@@ -86,7 +86,15 @@ class MonospaceLabel(tk.Label):
         self.configure(fg=color)
 
 
-class ColoredFrame(tk.Frame):
+class Common:
+    def set_color(self, color='black'):
+        print('TRYING to set color')
+        if hasattr(self, 'monospace_label'):
+            print('Setting color:', color)
+            self.monospace_label.set_color(color)
+
+
+class ColoredFrame(tk.Frame, Common):
     def __init__(self, parent, **kwargs):
         kw = dict(highlightthickness=1)
         kw.update(kwargs)
@@ -102,7 +110,7 @@ class ColoredFrame(tk.Frame):
         self.config(bg=color)
 
 
-class AddSampInfo(tk.Frame):
+class AddSampInfo(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -179,7 +187,7 @@ class AddSampInfo(tk.Frame):
         self._update_rigth_widgets(items)
 
 
-class LabelDropdownList(tk.Frame):
+class LabelDropdownList(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -289,7 +297,7 @@ class LabelDropdownList(tk.Frame):
         self.value = item
 
 
-class LabelEntry(tk.Frame):
+class LabelEntry(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -372,7 +380,7 @@ class LabelEntry(tk.Frame):
         self.value = item
 
 
-class LabelDoubleEntry(tk.Frame):
+class LabelDoubleEntry(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -503,7 +511,7 @@ class CruiseLabelDoubleEntry(LabelDoubleEntry):
         self.first_value = item[0]
 
 
-class CallbackButton(tk.Frame):
+class CallbackButton(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -541,7 +549,7 @@ class CallbackButton(tk.Frame):
         self.button.configure(state=state)
 
 
-class DepthEntry(tk.Frame):
+class DepthEntry(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -662,7 +670,7 @@ class DepthEntry(tk.Frame):
         return (math.ceil(depth / self.step)) * self.step
 
 
-class IntEntry(tk.Frame):
+class IntEntry(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -778,7 +786,7 @@ class VesselLabelDoubleEntry(LabelDoubleEntry):
         self.second_value = year
 
 
-class SelectDirectory(tk.Frame):
+class SelectDirectory(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -842,7 +850,7 @@ class SelectDirectory(tk.Frame):
         self._stringvar.set(str(path))
 
 
-class SelectedInstrumentTextFrame(tk.Frame):
+class SelectedInstrumentTextFrame(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -889,7 +897,7 @@ class SelectedInstrumentTextFrame(tk.Frame):
         self.instrument = item
 
 
-class SeriesEntryPicker(tk.Frame):
+class SeriesEntryPicker(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -1017,7 +1025,7 @@ class SeriesEntryPicker(tk.Frame):
         self.value = item
 
 
-class SurfaceSoakSelector(tk.Frame):
+class SurfaceSoakSelector(tk.Frame, Common):
 
     def __init__(self,
                 parent,
@@ -1095,7 +1103,7 @@ class SurfaceSoakSelector(tk.Frame):
         self.surfacesoak = item
 
 
-class SensorTableOld(tk.Frame):
+class SensorTableOld(tk.Frame, Common):
 
     def __init__(self,
                 parent,
@@ -1296,7 +1304,7 @@ class SensorTableOld(tk.Frame):
             self.combobox_status[i].configure(state='disabled')
 
 
-class SensorTable(tk.Frame):
+class SensorTable(tk.Frame, Common):
 
     def __init__(self,
                 parent,
@@ -1396,7 +1404,7 @@ class SensorTable(tk.Frame):
             self._stringvar_serial_number[i].set('')
 
 
-class LabelCheckbox(tk.Frame):
+class LabelCheckbox(tk.Frame, Common):
 
     def __init__(self,
                  parent,
@@ -1440,7 +1448,7 @@ class LabelCheckbox(tk.Frame):
         self.intvar.set(state)
 
 
-class PositionEntries(tk.Frame):
+class PositionEntries(tk.Frame, Common):
 
     def __init__(self,
                  parent,

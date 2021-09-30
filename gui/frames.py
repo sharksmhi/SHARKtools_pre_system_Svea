@@ -101,6 +101,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('button_svepa', self._on_return_load_svepa)
         subscribe('button_seasave', self._on_return_seasave)
 
+        subscribe('missing_input', self._missing_input)
+        subscribe('input_ok', self._input_ok)
+
     def save_selection(self):
         self._frame_metadata_admin.save_selection()
         self._frame_metadata_conditions.save_selection()
@@ -137,6 +140,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         tkw.grid_configure(frame, nr_columns=7, nr_rows=2)
 
+        self._components = {}
+
         self._cruise = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get('_cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._series = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get('_series'), row=1, column=0, **layout)
         self._station = components.LabelDropdownList(frame_left, 'station', title=translator.get('_station'), width=25, autocomplete=True, row=2, column=0, **layout)
@@ -167,6 +172,18 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _temp(self, dummy):
         print_subscribers()
+
+    def _missing_input(self, missing):
+        for key in missing:
+            if key.lower() not in self._components:
+                continue
+            self._components[key.lower()].set_color('red')
+
+    def _input_ok(self, *args):
+        if not hasattr(self, '_components'):
+            return
+        for comp in self._components.values():
+            comp.set_color()
 
     def _initiate_frame(self):
         self._station.values = self.get_station_list()
@@ -343,6 +360,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         missing.extend([key.upper() for key, value in metadata_admin.items() if not value])
         missing.extend([key.upper() for key, value in metadata_conditions.items() if not value])
 
+        post_event('input_ok', missing)
         if missing:
             post_event('missing_input', missing)
             raise MissingInformationError(missing_list=missing)
@@ -481,6 +499,9 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._saves_id_key = 'MetadataAdminFrame'
         self._selections_to_store = []
 
+        subscribe('missing_input', self._missing_input)
+        subscribe('input_ok', self._input_ok)
+
         self._build_frame()
 
         self._initiate_frame()
@@ -496,31 +517,38 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         text_ljust = 25
 
-        self._mprog = components.LabelDropdownList(frame, 'mprog', title=translator.get('_mprog').ljust(text_ljust), row=0, column=0, **layout)
-        self._proj = components.LabelDropdownList(frame, 'proj', title=translator.get('_proj').ljust(text_ljust), row=1, column=0, **layout)
-        self._orderer = components.LabelDropdownList(frame, 'orderer', title=translator.get('_orderer').ljust(text_ljust), row=2, column=0, **layout)
-        self._slabo = components.LabelDropdownList(frame, 'slabo', title=translator.get('_slabo').ljust(text_ljust), row=3, column=0, **layout)
-        self._alabo = components.LabelDropdownList(frame, 'alabo', title=translator.get('_alabo').ljust(text_ljust), row=4, column=0, **layout)
+        self._components = {}
+        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get('mprog').ljust(text_ljust), row=0, column=0, **layout)
+        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get('proj').ljust(text_ljust), row=1, column=0, **layout)
+        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get('orderer').ljust(text_ljust), row=2, column=0, **layout)
+        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get('slabo').ljust(text_ljust), row=3, column=0, **layout)
+        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get('alabo').ljust(text_ljust), row=4, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=5)
 
         # Store selection
-        self._selections_to_store = ['_mprog', '_proj', '_orderer', '_slabo', '_alabo']
+        to_store = ['mprog', 'proj', 'orderer', 'slabo', 'alabo']
+        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _initiate_frame(self):
-        self._mprog.values = options.get('mprog')
-        self._proj.values = options.get('proj')
-        self._orderer.values = options.get('orderer')
-        self._slabo.values = options.get('slabo')
-        self._alabo.values = options.get('alabo')
+        for key, comp in self._components.items():
+            comp.values = options.get(key)
 
     def get_data(self):
-        data = dict(mprog=self._mprog.value,
-                    proj=self._proj.value,
-                    orderer=self._orderer.value,
-                    slabo=self._slabo.value,
-                    alabo=self._alabo.value)
+        data = {key: comp.value for key, comp in self._components.items()}
         return data
+
+    def _missing_input(self, missing):
+        for key in missing:
+            if key.lower() not in self._components:
+                continue
+            self._components[key.lower()].set_color('red')
+
+    def _input_ok(self, *args):
+        if not hasattr(self, '_components'):
+            return
+        for comp in self._components.values():
+            comp.set_color()
 
 
 class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -544,14 +572,14 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._saves_id_key = 'MetadataConditionsFrame'
         self._selections_to_store = []
 
+        subscribe('missing_input', self._missing_input)
+        subscribe('input_ok', self._input_ok)
+
         self._build_frame()
 
         self._initiate_frame()
 
         self.load_selection()
-
-        subscribe('missing_input', self._missing_input)
-        subscribe('input_ok', self._input_ok)
 
     def _build_frame(self):
         frame = tk.Frame(self)
@@ -582,30 +610,26 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _initiate_frame(self):
         self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
-        self._components['weather'].values = options.get('weather')
-        self._components['cloud'].values = options.get('cloud')
-        self._components['waves'].values = options.get('waves')
-        self._components['iceob'].values = options.get('ice')
+
+        for key in ['weather', 'cloud', 'waves', 'iceob']:
+            self._components[key].values = options.get(key)
 
     def get_data(self):
         data = {key: comp.value for key, comp in self._components.items()}
-        # data = dict(wadep=self._wadep.value,
-        #             windir=self._windir.value,
-        #             windsp=self._windsp.value,
-        #             airtemp=self._airtemp.value,
-        #             airpres=self._airpres.value,
-        #             weather=self._weather.value,
-        #             cloud=self._cloud.value,
-        #             waves=self._waves.value,
-        #             ice=self._ice.value,
-        #             comment=self._comment.value)
         return data
 
     def _missing_input(self, missing):
-
+        for key in missing:
+            low_key = key.lower()
+            if low_key not in self._components:
+                continue
+            if key == 'comment':
+                continue
+            self._components[low_key].set_color('red')
 
     def _input_ok(self, *args):
-        pass
+        for comp in self._components.values():
+            comp.set_color()
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):

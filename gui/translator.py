@@ -13,11 +13,11 @@ class Translator:
              '_event_id': 'EventID      ',
              '_parent_event_id': 'ParentEventID',
 
-             '_mprog':   'Övervakningsprogram',
-             '_proj':    'Projekt',
-             '_orderer': 'Beställare',
-             '_slabo':   'Provtagande laboratorium',
-             '_alabo':   'Analyserande laboratorium',
+             'mprog':   'Övervakningsprogram',
+             'proj':    'Projekt',
+             'orderer': 'Beställare',
+             'slabo':   'Provtagande laboratorium',
+             'alabo':   'Analyserande laboratorium',
 
              'wadep': 'Vattendjup vid station [m]',
              'windir': 'Vindriktning',
