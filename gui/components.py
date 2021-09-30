@@ -720,7 +720,6 @@ class IntEntry(tk.Frame, Common):
 
     def _on_focus_out(self, *args):
         string = self._stringvar.get()
-        print('string', string)
         if string:
             if self.min_value is not None and int(string) < self.min_value:
                 string = str(self.min_value)

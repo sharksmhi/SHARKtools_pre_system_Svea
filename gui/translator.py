@@ -21,10 +21,10 @@ class Translator:
 
              'wadep': 'Vattendjup vid station [m]',
              'windir': 'Vindriktning',
-             'windsp': 'Vindhastighet [m/s]',
-             'airtemp': 'Vindtemperatur [grader C]',
+             'winsp': 'Vindhastighet [m/s]',
+             'airtemp': 'Lufttemperatur [grader C]',
              'airpres': 'Lufttryck [hPa]',
-             'weather': 'Väder [kod]',
+             'weath': 'Väder [kod]',
              'cloud': 'Moln [kod]',
              'waves': 'Vågor [kod]',
              'iceob': 'Is [kod]',

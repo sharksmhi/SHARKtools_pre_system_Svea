@@ -327,60 +327,52 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         pass
 
     def _modify_seasave_file(self):
-        depth = self._components['depth'].value
-        bin_size = self._components['bin_size'].value
-        cruise_nr = self._components['cruise'].nr
-        ship_code = self._components['vessel'].code
-        serno = self._components['series'].value
-        station = self._components['station'].value
-        operator = self._components['operator'].value
-        lat = self._components['position'].lat
-        lon = self._components['position'].lon
-        pos_source = self._components['position'].source
-        event_id = self._components['event_id'].value
-        parent_event_id = self._components['parent_event_id'].value
-        add_samp = ', '.join(self._components['add_samp'].value)
-
-        attrs = {self._components['cruise']: self._components['cruise'].nr,
-                 self._components['vessel']: self._components['vessel'].code}
+        data = {}
+        for key, comp in self._components.items():
+            if key == 'cruise':
+                data['cruise_nr'] = self._components[key].nr
+                data['year'] = self._components[key].year
+                data['cruise'] = self._components[key].nr
+            elif key == 'vessel':
+                data['ship_code'] = self._components[key].code
+                data['vessel'] = self._components[key].code
+            elif key == 'series':
+                data['serno'] = self._components[key].value
+                data['series'] = self._components[key].value
+            elif key == 'position':
+                data['lat'] = self._components[key].lat
+                data['lon'] = self._components[key].lon
+                data['pos_source'] = self._components[key].source
+                data['position'] = data['lat'] and data['lon']
+            elif key == 'add_samp':
+                data['add_samp'] = ', '.join(self._components[key].value)
+            elif hasattr(self._components[key], 'value'):
+                data[key] = self._components[key].value
 
         metadata_admin = self._frame_metadata_admin.get_data()
         metadata_conditions = self._frame_metadata_conditions.get_data()
 
         missing = []
-        for obj in [self._components['depth'], self._components['bin_size'], self._components['cruise'], 
-                    self._components['vessel'], self._components['series'], self._components['station'], 
-                    self._components['operator']]:
-            if obj in attrs:
-                if not attrs.get(obj):
-                    missing.append(obj._id)
-            else:
-                if not obj.value:
-                    missing.append(obj._id)
+        for key in ['depth', 'bin_size', 'cruise', 'vessel', 'series', 'station', 'operator']:
+            if not data.get(key):
+                missing.append(key)
 
         missing.extend([key for key, value in metadata_admin.items() if not value])
-        missing.extend([key for key, value in metadata_conditions.items() if not value])
+        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment']])
 
         post_event('input_ok', missing)
         if missing:
             post_event('missing_input', missing)
             raise MissingInformationError(missing_list=[translator.get_readable(item) for item in missing])
 
-        nr_bins = int(float(depth) / float(bin_size))
+        data['nr_bins'] = int(float(data['depth']) / float(data['bin_size']))
+        data['instrument'] = self.instrument
+        data['position'] = ['', '', '']  # We dont set position
 
         # Update
-        self.controller.update_main_psa_file(instrument=self.instrument,
-                                             depth=depth,
-                                             nr_bins=nr_bins,
-                                             cruise_nr=cruise_nr,
-                                             ship_code=ship_code,
-                                             serno=serno,
-                                             station=station,
-                                             position=['', '', ''], # We dont set position
-                                             operator=operator,
-                                             event_id=event_id,
-                                             parent_event_id=parent_event_id,
-                                             add_samp=add_samp)
+        meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
+        meta_cond = {key.upper(): value for key, value in metadata_conditions.items()}
+        self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond)
 
     def _on_return_seasave(self, *args):
         #TODO: Validate selection here
@@ -594,25 +586,25 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components = {}
         self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get_readable('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
         self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get_readable('windir').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['windsp'] = components.IntEntry(frame, 'windsp', title=translator.get_readable('windsp').ljust(text_ljust), min_value=options.get('windsp').get('min'), max_value=options.get('windsp').get('max'), row=2, column=0, **layout)
+        self._components['winsp'] = components.IntEntry(frame, 'winsp', title=translator.get_readable('winsp').ljust(text_ljust), min_value=options.get('winsp').get('min'), max_value=options.get('winsp').get('max'), row=2, column=0, **layout)
         self._components['airtemp'] = components.IntEntry(frame, 'airtemp', title=translator.get_readable('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
         self._components['airpres'] = components.IntEntry(frame, 'airpres', title=translator.get_readable('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
-        self._components['weather'] = components.LabelDropdownList(frame, 'weather', title=translator.get_readable('weather').ljust(text_ljust), row=5, column=0, **layout)
+        self._components['weath'] = components.LabelDropdownList(frame, 'weath', title=translator.get_readable('weath').ljust(text_ljust), row=5, column=0, **layout)
         self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=6, column=0, **layout)
         self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=7, column=0, **layout)
         self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=8, column=0, **layout)
-        self._components['comment'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=25, row=9, column=0, **layout)
+        self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=9, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=10)
 
         # Store selection
-        to_store = ['windir', 'windsp', 'aritemp', 'airpres', 'weather', 'cloud', 'waves', 'iceob']
+        to_store = ['windir', 'winsp', 'airtemp', 'airpres', 'weath', 'cloud', 'waves', 'iceob']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _initiate_frame(self):
         self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
 
-        for key in ['weather', 'cloud', 'waves', 'iceob']:
+        for key in ['weath', 'cloud', 'waves', 'iceob']:
             self._components[key].values = options.get(key)
 
     def get_data(self):
