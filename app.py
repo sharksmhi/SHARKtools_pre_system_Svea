@@ -69,7 +69,7 @@ class App(PluginApp):
         self.startup_pages()
 
         self.page_history = ['PageStart']
-        # self.show_frame('PageStart')
+        self.show_frame('PageStart')
 
         # self.update_all()
 

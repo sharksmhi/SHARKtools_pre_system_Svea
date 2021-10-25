@@ -5,22 +5,15 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import tkinter as tk
-from tkinter import ttk
 from sharkpylib.tklib import tkinter_widgets as tkw
 
 from . import frames
 
-from pathlib import Path
-
-from . import components
 
 from pre_system_svea.controller import Controller
 from ctd_processing.paths import SBEPaths
 
-from ctd_processing.sensor_info import InstrumentFile
-
 from ..events import subscribe
-from ..events import post_event
 
 
 class PageStart(tk.Frame):

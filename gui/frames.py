@@ -19,7 +19,7 @@ from ..events import subscribe
 from ..events import print_subscribers
 
 from ..gui.translator import Translator
-from ..options import get_options
+from ctd_processing.options import get_options
 
 TEXT_LJUST = 10
 
