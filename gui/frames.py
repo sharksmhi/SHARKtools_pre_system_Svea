@@ -220,7 +220,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         post_event('set_next_series', next_serno)
 
     def _on_focus_out_series(self, serno):
-        print('_on_focus_out_series', serno)
         cruise, year = self._components['cruise'].get()
         ship_name, ship_code = self._components['vessel'].get()
         series = self.controller.series_exists(server=True,
@@ -358,7 +357,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 missing.append(key)
 
         missing.extend([key for key, value in metadata_admin.items() if not value])
-        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment']])
+        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment', 'comnt_visit']])
 
         post_event('input_ok', missing)
         if missing:
@@ -605,7 +604,6 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
 
         for key in ['weath', 'cloud', 'waves', 'iceob']:
-            print('options.get(key)', options.get(key))
             self._components[key].values = options.get(key)
 
     def get_data(self):
@@ -767,7 +765,6 @@ class FrameSelectInstrument(tk.Frame):
             return
 
     def _on_select_instrument(self, *args):
-        print('_on_select_instrument', self.instrument)
         if not self.instrument:
             self._frame_info.reset_info()
             self._sensor_table.reset_data()

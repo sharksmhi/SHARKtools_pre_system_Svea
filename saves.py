@@ -84,11 +84,9 @@ class SaveSelection:
         self._saves.set(self._saves_id_key, data)
 
     def load_selection(self):
-        print('self._defaults::::::::::', self._defaults.data)
         data = self._saves.get(self._saves_id_key)
         if type(self._selections_to_store) == dict:
             for name, comp in self._selections_to_store.items():
-                print('-- NAME-- :', name, comp)
                 try:
                     value = self._defaults.get(name)
                     if value is None:
@@ -104,10 +102,45 @@ class SaveSelection:
                     value = self._defaults.get(self._saves_id_key)
                     if value is None:
                         value = data.get(comp, None)
-                        print('----', comp, value)
                         if value is None:
                             continue
                     getattr(self, comp).set(value)
                 except:
                     raise
+
+
+class SaveComponents:
+
+    def __init__(self, key):
+        self._saves = Saves()
+        self._defaults = Defaults()
+        self._saves_id_key = key
+        self._components_to_store = set()
+
+    def add_components(self, *args):
+        for comp in args:
+            self._components_to_store.add(comp)
+
+    def save(self):
+        data = {}
+        for comp in self._components_to_store:
+            try:
+                data[comp._id] = str(comp.get())
+                # print(f'SAVING: {comp._id} - {data[comp._id]}')
+            except:
+                pass
+        self._saves.set(self._saves_id_key, data)
+
+    def load(self):
+        data = self._saves.get(self._saves_id_key)
+        for comp in self._components_to_store:
+            try:
+                item = self._defaults.get(comp._id, None)
+                if item is None:
+                    item = data.get(comp._id, None)
+                if item is None:
+                    continue
+                comp.set(item)
+            except:
+                pass
 
