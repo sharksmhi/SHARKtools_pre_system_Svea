@@ -28,7 +28,8 @@ class EventTypes:
                 'series_step',
                 'load_svepa',
                 'missing_input',
-                'input_ok'
+                'input_ok',
+                'select_default_user'
             ]
         for item in self.event_types:
             setattr(self, item, item)

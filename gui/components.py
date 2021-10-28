@@ -10,6 +10,7 @@ from operator import itemgetter
 
 from ..events import post_event
 from ..events import subscribe
+from .. import saves
 
 import sharkpylib.tklib.tkinter_widgets as tkw
 
@@ -894,6 +895,48 @@ class SelectedInstrumentTextFrame(tk.Frame, Common):
 
     def set(self, item, **kwargs):
         self.instrument = item
+
+
+class SelectedDefaultUserTextFrame(tk.Frame, Common):
+
+    def __init__(self,
+                 parent,
+                 controller,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self.controller = controller
+
+        self.user_selection_widget = None
+
+        self._default_users = saves.get_default_users()
+
+        self._stringvar = tk.StringVar()
+
+        MonospaceLabel(self, text='Användare').grid(column=0, padx=5, pady=5, sticky='w')
+
+        self.user_selection_widget = tkw.ComboboxWidget(self, items=self._default_users, row=0, column=1,
+                                                        padx=5, pady=5, sticky='w')
+        self.user_selection_widget.add_target(self._on_select_user)
+
+    def _on_select_user(self, *args):
+        user = self.user_selection_widget.get()
+        post_event(f'select_default_user', user)
+
+    def get(self):
+        return self._stringvar.get()
+
+    def set(self, item, **kwargs):
+        if item not in self._default_users:
+            return
+        self._stringvar.set(item)
 
 
 class SeriesEntryPicker(tk.Frame, Common):

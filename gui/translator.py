@@ -19,7 +19,7 @@ class Translator:
              'slabo':   'Provtagande laboratorium',
              'alabo':   'Analyserande laboratorium',
 
-             'wadep': 'Vattendjup vid station [m]',
+             'wadep': 'Ekolodsdjup vid station [m]',
              'windir': 'Vindriktning',
              'winsp': 'Vindhastighet [m/s]',
              'airtemp': 'Lufttemperatur [grader C]',

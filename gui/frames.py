@@ -493,6 +493,7 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
+        subscribe('select_default_user', self._on_change_default_user)
 
         self._build_frame()
 
@@ -542,6 +543,9 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         for comp in self._components.values():
             comp.set_color()
 
+    def _on_change_default_user(self, user):
+        self.load_selection(default_user=user)
+
 
 class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
@@ -566,6 +570,7 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
+        subscribe('select_default_user', self._on_change_default_user)
 
         self._build_frame()
 
@@ -622,6 +627,9 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def _input_ok(self, *args):
         for comp in self._components.values():
             comp.set_color()
+
+    def _on_change_default_user(self, user):
+        self.load_selection(default_user=user)
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -1176,7 +1184,7 @@ class FrameStartUp(tk.Frame, SaveSelection):
             self._sensor_table.instrument = self.__instrument
 
 
-class FrameManageCTDcastsStation(tk.Frame):
+class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -1186,6 +1194,9 @@ class FrameManageCTDcastsStation(tk.Frame):
         self.controller = controller
 
         self._build_frame()
+
+        self._saves_id_key = 'FrameManageCTDcastsStation'
+        self._selections_to_store = [self.default_user_frame]
 
         subscribe('focus_out_series', self._update_data_file_info)
         subscribe('series_step', self._update_data_file_info)
@@ -1201,7 +1212,10 @@ class FrameManageCTDcastsStation(tk.Frame):
 
         layout = dict(padx=5, pady=5, sticky='nwse')
 
-        self.instrument_text_frame = components.SelectedInstrumentTextFrame(frame, self.controller, row=0, column=0, **layout)
+        top_frame = tk.Frame(frame)
+        top_frame.grid(row=0, column=0, sticky='ew')
+        self.instrument_text_frame = components.SelectedInstrumentTextFrame(top_frame, self.controller, row=0, column=0, **layout)
+        self.default_user_frame = components.SelectedDefaultUserTextFrame(top_frame, self.controller, row=0, column=1, **layout)
 
         ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, sticky='ew')
 
@@ -1231,6 +1245,7 @@ class FrameManageCTDcastsStation(tk.Frame):
 
     def save_selection(self):
         self.content_frame.save_selection()
+        super().save_selection()
 
     @property
     def instrument(self):
