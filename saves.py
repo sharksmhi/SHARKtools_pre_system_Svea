@@ -125,6 +125,8 @@ class SaveSelection:
 
     def load_selection(self, default_user=None, **kwargs):
         data = self._saves.get(self._saves_id_key)
+        if not data:
+            return
         if default_user:
             self._defaults = Defaults(user=default_user)
         if type(self._selections_to_store) == dict:
