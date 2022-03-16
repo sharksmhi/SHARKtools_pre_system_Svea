@@ -723,15 +723,18 @@ class ProcessingFrame(tk.Frame, SaveSelection):
         self._selections_to_store = ['_sensor_table']
 
 
-class FrameSelectInstrument(tk.Frame):
+class FrameSelectInstrument(tk.Frame, SaveSelection):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
 
         self.controller = controller
 
+        self._saves_id_key = 'FrameSelectInstrument'
+
         self._build_frame()
         self._add_subscribers()
+        self.load_selection()
 
     def _add_subscribers(self):
         subscribe('select_instrument', self._on_select_instrument)
@@ -747,10 +750,16 @@ class FrameSelectInstrument(tk.Frame):
 
         self._sensor_table = components.SensorTable(self, self.controller, row=0, column=1, **layout)
 
-        ttk.Separator(self, orient='horizontal').grid(row=1, column=0, columnspan=2, sticky='ew')
+        pump_frame = tk.Frame(self)
+        pump_frame.grid(row=0, column=2, sticky='nw')
+        self._pump_1 = components.LabelEntry(pump_frame, 'pump1',  title='Primär pump SBE5'.ljust(20), data_type=int, row=0, column=0, **layout)
+        self._pump_2 = components.LabelEntry(pump_frame, 'pump2',  title='Sekundär pump SBE5'.ljust(20), data_type=int, row=1, column=0, **layout)
+        tkw.grid_configure(pump_frame, nr_rows=2)
+
+        ttk.Separator(self, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
 
         self._frame_info = SelectionInfoFrame(self, self.controller)
-        self._frame_info.grid(row=2, column=0, columnspan=2, sticky='nsew')
+        self._frame_info.grid(row=2, column=0, columnspan=3, sticky='nsew')
 
         self.confirm_button = tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
                   command=self._on_confirm_sensors)
@@ -758,6 +767,8 @@ class FrameSelectInstrument(tk.Frame):
         self.confirm_button.configure(state='disabled')
 
         tkw.grid_configure(self, nr_rows=4, nr_columns=3)
+
+        self._selections_to_store = ['_pump_1', '_pump_2']
 
     def _on_confirm_sensors(self, *args):
         post_event('confirm_sensors', self.instrument)
@@ -810,6 +821,10 @@ class FrameSelectInstrument(tk.Frame):
     def instrument(self, name):
         self._frame_instrument_buttons.instrument = name
 
+    def save_selection(self):
+        self._frame_info.save_selection()
+        super().save_selection()
+
 
 class DataFileInfoFrame(tk.Frame):
     """
@@ -856,6 +871,8 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         super().__init__(parent)
 
         self.controller = controller
+
+        self._saves_id_key = 'SelectionInfoFrame'
 
         self.latest_instrument = None
 

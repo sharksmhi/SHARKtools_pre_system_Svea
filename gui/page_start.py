@@ -11,7 +11,7 @@ from . import frames
 
 
 from pre_system_svea.controller import Controller
-from ctd_processing.paths import SBEPaths
+from file_explorer.seabird.paths import SBEPaths
 
 from ..events import subscribe
 
@@ -51,6 +51,7 @@ class PageStart(tk.Frame):
 
     def close(self):
         self._frame_manage_ctd_casts.save_selection()
+        self._frame_select_instrument.save_selection()
 
     def update_page(self):
         pass

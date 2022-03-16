@@ -1,14 +1,8 @@
 @startuml
 
-title SHARKtools_pre_system_Svea_class_diagram
+title Class diagram: SHARKtools_pre_system_Svea
 
-class Controller  {
-	
-==
-	
-}
-
-class app.App #DE657F {
+class app.App #74B7F6 {
 	+active_page
 	+admin_mode
 	+all_ok
@@ -28,9 +22,9 @@ class app.App #DE657F {
 	+progress_running_toplevel
 	+root_directory
 	+titles
-	+user, @p
 	+user_manager
 	+version
+	user, @p
 ==
 	+close()
 	+goto_previous_page()
@@ -47,7 +41,26 @@ class app.App #DE657F {
 	-_set_load_frame()
 }
 
-class components.AutocompleteCombobox #FC85E0 {
+class components.AddSampInfo #9C81BC {
+	+data_type
+	+grid_frame
+	+monospace_label
+	+right_frame
+	+state
+	+title
+	+width
+	-_id
+	-_nr_right_rows
+	-_right_widgets
+	value, @p
+==
+	-_create_frame()
+	-_remove_right_widgets()
+	-_update()
+	-_update_rigth_widgets()
+}
+
+class components.AutocompleteCombobox #9C81BC {
 	+position
 	-_completion_list
 	-_hit_index
@@ -58,19 +71,18 @@ class components.AutocompleteCombobox #FC85E0 {
 	+set_values()
 }
 
-class components.CallbackButton #FC85E0 {
+class components.CallbackButton #9C81BC {
 	+button
 	+grid_frame
 	+title
-	-_cb
+	-_id
 ==
-	+add_callback()
 	+set_state()
 	-_callback()
 	-_create_frame()
 }
 
-class components.ColoredFrame #FC85E0 {
+class components.ColoredFrame #9C81BC {
 	
 ==
 	+set_fill_color()
@@ -78,36 +90,44 @@ class components.ColoredFrame #FC85E0 {
 	+set_frame_thickness()
 }
 
-class components.CruiseLabelDoubleEntry #FC85E0 {
-	+first_value
-	+nr, @p
-	+second_value
-	+year, @p
+class components.Common #9C81BC {
+	
 ==
+	+set_color()
+}
+
+class components.CruiseLabelDoubleEntry #9C81BC {
+	+first_value
+	+second_value
+	nr, @p
+	year, @p
+==
+	+set()
 	-_modify()
 	-_on_change_entry()
 	-_on_focus_in_first()
 	-_on_focus_in_second()
+	-_on_focus_out_first()
 }
 
-class components.DepthEntry #FC85E0 {
+class components.DepthEntry #9C81BC {
 	+data_type
 	+entry
 	+grid_frame
+	+monospace_label
 	+state
 	+step
-	+stringvar
-	+stringvar_bottom_depth
 	+title
 	+value
-	+value, @p
-	+water_depth, @p
 	+width
 	-_bottom_depth
 	-_bottom_depth_string_base
-	-_cb
+	-_id
+	-_stringvar
+	-_stringvar_bottom_depth
+	value, @p
+	water_depth, @p
 ==
-	+add_callback()
 	+get()
 	+set()
 	-_create_frame()
@@ -116,77 +136,20 @@ class components.DepthEntry #FC85E0 {
 	-_on_focus_out()
 }
 
-class components.LabelCheckbox #FC85E0 {
-	+checkbutton
-	+grid_frame
-	+intvar
-	+title
-	-_cb
-==
-	+add_callback()
-	+get()
-	+set()
-	-_create_frame()
-	-_on_toggle()
-}
-
-class components.LabelDoubleEntry #FC85E0 {
-	+entry_first
-	+entry_second
-	+first_value
-	+first_value, @p
-	+grid_frame
-	+second_value
-	+second_value, @p
-	+stringvar_first
-	+stringvar_second
-	+title
-	+width
-	-_cb
-==
-	+get()
-	+set()
-	-_create_frame()
-}
-
-class components.LabelDropdownList #FC85E0 {
-	+autocomplete
-	+combobox
-	+grid_frame
-	+state
-	+stringvar
-	+title
-	+value
-	+value, @p
-	+values, @p
-	+width
-	-_cb_select
-	-_old_value
-==
-	+add_callback_select()
-	+get()
-	+set()
-	-_create_frame()
-	-_has_new_value()
-	-_on_focus_in()
-	-_on_focus_out()
-	-_on_select()
-	-_run_callbacks()
-}
-
-class components.LabelEntry #FC85E0 {
-	+data_type
+class components.IntEntry #9C81BC {
 	+entry
 	+grid_frame
+	+max_value
+	+min_value
+	+monospace_label
 	+state
-	+stringvar
 	+title
 	+value
-	+value, @p
 	+width
-	-_cb
+	-_id
+	-_stringvar
+	value, @p
 ==
-	+add_callback()
 	+get()
 	+set()
 	-_create_frame()
@@ -194,26 +157,105 @@ class components.LabelEntry #FC85E0 {
 	-_on_focus_out()
 }
 
-class components.MonospaceLabel #FC85E0 {
-	
+class components.LabelCheckbox #9C81BC {
+	+checkbutton
+	+grid_frame
+	+intvar
+	+monospace_label
+	+title
+	-_id
 ==
-	
+	+get()
+	+set()
+	-_create_frame()
+	-_on_toggle()
 }
 
-class components.PositionEntries #FC85E0 {
+class components.LabelDoubleEntry #9C81BC {
+	+entry_first
+	+entry_second
+	+first_value
+	+grid_frame
+	+monospace_label
+	+second_value
+	+title
+	+width
+	-_id
+	-_stringvar_first
+	-_stringvar_second
+	first_value, @p
+	second_value, @p
+==
+	+get()
+	+set()
+	-_create_frame()
+}
+
+class components.LabelDropdownList #9C81BC {
+	+autocomplete
+	+combobox
+	+grid_frame
+	+monospace_label
+	+state
+	+title
+	+value
+	+width
+	-_id
+	-_old_value
+	-_stringvar
+	value, @p
+	values, @p
+==
+	+get()
+	+set()
+	-_create_frame()
+	-_has_new_value()
+	-_on_focus_in()
+	-_on_focus_out()
+	-_on_select()
+}
+
+class components.LabelEntry #9C81BC {
+	+data_type
+	+entry
+	+grid_frame
+	+monospace_label
+	+state
+	+title
+	+value
+	+width
+	-_id
+	-_stringvar
+	value, @p
+==
+	+get()
+	+set()
+	-_create_frame()
+	-_on_change_entry()
+	-_on_focus_out()
+}
+
+class components.MonospaceLabel #9C81BC {
+	
+==
+	+set_color()
+}
+
+class components.PositionEntries #9C81BC {
 	+entry_lat
 	+entry_lon
 	+grid_frame
 	+lat
-	+lat, @p
 	+lon
-	+lon, @p
-	+stringvar_lat
-	+stringvar_lon
 	+width
-	-_cb
+	-_id
+	-_stringvar_lat
+	-_stringvar_lon
+	-_stringvar_source
+	lat, @p
+	lon, @p
+	source, @p
 ==
-	+add_callback()
 	+get()
 	+set()
 	-_create_frame()
@@ -224,19 +266,20 @@ class components.PositionEntries #FC85E0 {
 	-_on_focus_in_lon()
 	-_on_focus_out_lat()
 	-_on_focus_out_lon()
-	-_run_callbacks()
+	-_on_return_lat()
+	-_on_return_lon()
 }
 
-class components.SelectDirectory #FC85E0 {
+class components.SelectDirectory #9C81BC {
 	+button
-	+directory, @p
 	+entry
 	+grid_frame
 	+state
-	+stringvar
 	+title
 	+width
-	-_cb
+	-_id
+	-_stringvar
+	directory, @p
 ==
 	+get()
 	+set()
@@ -244,34 +287,65 @@ class components.SelectDirectory #FC85E0 {
 	-_on_button_pres()
 }
 
-class components.SelectedInstrumentTextFrame #FC85E0 {
+class components.SelectedDefaultUserTextFrame #9C81BC {
+	+controller
+	+grid_frame
+	+user_selection_widget
+	-_default_users
+	-_stringvar
+==
+	+get()
+	+set()
+	-_on_select_user()
+}
+
+class components.SelectedInstrumentTextFrame #9C81BC {
+	+controller
 	+grid_frame
 	+instrument
-	+instrument, @p
-	+stringvar
+	+monospace_label
 	-__instrument_name
 	-_instrument_type
+	-_stringvar
+	instrument, @p
 ==
 	+get()
 	+set()
 	-_set_text()
 }
 
-class components.SensorTable #FC85E0 {
+class components.SensorTable #9C81BC {
+	+controller
+	+grid_frame
+	-_current_sort_par
+	-_data
+	-_stringvar_par
+	-_stringvar_serial_number
+==
+	+get()
+	+reset_data()
+	+set()
+	+update_data()
+	-_clear_widget()
+	-_create_frame()
+	-_sort_by()
+}
+
+class components.SensorTableOld #9C81BC {
 	+combobox_instrument
 	+combobox_status
 	+grid_frame
 	+instrument
-	+instrument, @p
-	+stringvar_instrument
-	+stringvar_par
-	+stringvar_sensor_id
-	+stringvar_status
 	-_current_instrument
 	-_current_instrument_data
 	-_current_sort_par
 	-_data
 	-_instrument_list
+	-_stringvar_instrument
+	-_stringvar_par
+	-_stringvar_sensor_id
+	-_stringvar_status
+	instrument, @p
 ==
 	+get()
 	+set()
@@ -285,41 +359,43 @@ class components.SensorTable #FC85E0 {
 	-_sort_by_id_list()
 }
 
-class components.SeriesEntryPicker #FC85E0 {
+class components.SeriesEntryPicker #9C81BC {
 	+button_down
 	+button_up
 	+entry
 	+grid_frame
 	+include_arrows
-	+stringvar
+	+monospace_label
 	+title
 	+value
-	+value, @p
 	+width
-	-_cb
+	-_id
+	-_stringvar
+	value, @p
 ==
-	+add_callback()
 	+get()
 	+set()
 	-_create_frame()
+	-_format_value()
 	-_on_button_down()
 	-_on_button_up()
 	-_on_change_entry()
 	-_on_focus_in()
 	-_on_focus_out()
+	-_on_return()
 }
 
-class components.SurfaceSoakSelector #FC85E0 {
+class components.SurfaceSoakSelector #9C81BC {
 	+button_selected_color
 	+button_unselected_color
 	+buttons
 	+grid_frame
+	+monospace_label
 	+surfacesoak
-	+surfacesoak, @p
-	-_cb
+	-_id
 	-_selected
+	surfacesoak, @p
 ==
-	+add_callback()
 	+get()
 	+set()
 	-_create_frame()
@@ -328,16 +404,28 @@ class components.SurfaceSoakSelector #FC85E0 {
 	-_select()
 }
 
-class components.VesselLabelDoubleEntry #FC85E0 {
-	+code, @p
+class components.VesselLabelDoubleEntry #9C81BC {
 	+first_value
-	+name, @p
 	+second_value
+	code, @p
+	name, @p
 ==
 	-_modify()
 }
 
-class frames.ColoredFrame #781051 {
+class events.EventTypes #D5CFB3 {
+	+event_types
+==
+	-__contains__()
+}
+
+class events.InvalidEventType #D5CFB3 {
+	
+==
+	
+}
+
+class frames.ColoredFrame #C9031B {
 	
 ==
 	+set_fill_color()
@@ -345,78 +433,138 @@ class frames.ColoredFrame #781051 {
 	+set_frame_thickness()
 }
 
-class frames.CommonFrameMethods #781051 {
+class frames.CommonFrameMethods #C9031B {
 	
 ==
 	+get_operator_list()
 	+get_station_list()
 }
 
-class frames.FrameManageCTDcastsStation #781051 {
-	+content_frame
-	+controller, @p
-	+instrument, @p
-	+instrument_text_frame
-	-__controller
-	-__instrument
+class frames.DataFileInfoFrame #C9031B {
+	+controller
+	-_stringvar_current_file
+	-_stringvar_latest_file
 ==
-	+save_selection()
+	+set_current_file()
+	+set_latest_file()
 	-_build_frame()
-	-_update_frame()
 }
 
-class frames.FrameManageCTDcastsTransect #781051 {
-	+content_frame
-	+instrument, @p
-	+instrument_text_frame
-	-__instrument
-==
-	+save_selection()
-	-_build_frame()
-	-_update_frame()
-}
-
-class frames.FrameProcessing #781051 {
-	+content_frame
-	+instrument, @p
-	+instrument_text_frame
-	-__instrument
-==
-	+save_selection()
-	-_build_frame()
-	-_update_frame()
-}
-
-class frames.FrameSelectInstrument #781051 {
+class frames.FrameInstrumentButtons #C9031B {
 	+button_selected_color
 	+button_unselected_color
 	+buttons
-	+directory
-	+instrument, @p
-	-_cb_instrument_select
+	+controller
 	-_instrument_type
 	-_selected
+	-_selections_to_store
+	instrument, @p
 ==
-	+add_callback_instrument_select()
-	+save_selection()
+	+deselect()
 	-_build_frame()
-	-_deselect()
 	-_on_select_instrument()
 	-_select()
 }
 
-class frames.FrameStartUp #781051 {
-	+instrument, @p
+class frames.FrameManageCTDcastsStation #C9031B {
+	+content_frame
+	+controller
+	+data_file_info_frame
+	+default_user_frame
+	+instrument_text_frame
+	-__instrument
+	-_saves_id_key
+	-_selections_to_store
+	instrument, @p
+==
+	+save_selection()
+	-_build_frame()
+	-_update_data_file_info()
+	-_update_frame()
+}
+
+class frames.FrameManageCTDcastsTransect #C9031B {
+	+content_frame
+	+controller
+	+instrument_text_frame
+	-__instrument
+	instrument, @p
+==
+	+save_selection()
+	-_build_frame()
+	-_update_frame()
+}
+
+class frames.FrameSelectInstrument #C9031B {
+	+confirm_button
+	+controller
+	-_frame_info
+	-_frame_instrument_buttons
+	-_sensor_table
+	config_root_directory, @p
+	data_root_directory_local, @p
+	data_root_directory_server, @p
+	instrument, @p
+==
+	-_add_subscribers()
+	-_build_frame()
+	-_on_change_config_path()
+	-_on_change_data_path()
+	-_on_confirm_sensors()
+	-_on_select_instrument()
+}
+
+class frames.FrameStartUp #C9031B {
+	+controller
 	-__instrument
 	-_selections_to_store
 	-_sensor_table
+	instrument, @p
 ==
 	+update_sbe_instrument_info()
 	-_build_frame()
 	-_update_frame()
 }
 
-class frames.ProcessingFrame #781051 {
+class frames.MetadataAdminFrame #C9031B {
+	+controller
+	+grid_frame
+	+instrument
+	-_components
+	-_saves_id_key
+	-_selections_to_store
+==
+	+get_data()
+	-_build_frame()
+	-_initiate_frame()
+	-_input_ok()
+	-_missing_input()
+	-_on_change_default_user()
+}
+
+class frames.MetadataConditionsFrame #C9031B {
+	+controller
+	+grid_frame
+	+instrument
+	-_components
+	-_saves_id_key
+	-_selections_to_store
+==
+	+get_data()
+	-_build_frame()
+	-_initiate_frame()
+	-_input_ok()
+	-_missing_input()
+	-_on_change_default_user()
+}
+
+class frames.MissingInformationError #C9031B {
+	+missing_list
+==
+	
+}
+
+class frames.ProcessingFrame #C9031B {
 	+grid_frame
 	-_saves_id_key
 	-_selections_to_store
@@ -424,82 +572,143 @@ class frames.ProcessingFrame #781051 {
 	-_build_frame()
 }
 
-class frames.StationPreSystemFrame #781051 {
+class frames.SelectionInfoFrame #C9031B {
+	+controller
+	+latest_instrument
+	-_selections_to_store
+	-_stringvar_config_root_path
+	-_stringvar_ctd
+	-_stringvar_data_root_path_local
+	-_stringvar_data_root_path_server
+	-_stringvar_seasave_psa
+	-_stringvar_xmlcon
+	config_root_path, @p
+	data_root_path_local, @p
+	data_root_path_server, @p
+==
+	+reset_info()
+	+update_info()
+	-_build_frame()
+	-_on_click_root_config()
+	-_on_click_root_data_local()
+	-_on_click_root_data_server()
+	-_set_config_root_directory()
+	-_set_data_root_directory_local()
+	-_set_data_root_directory_server()
+	-_set_paths_in_controller()
+}
+
+class frames.StationPreSystemFrame #C9031B {
 	+controller
 	+grid_frame
-	-_bin_size
-	-_cruise
-	-_depth
-	-_distance
-	-_operator
-	-_position
+	+instrument
+	-_components
+	-_frame_metadata_admin
+	-_frame_metadata_conditions
 	-_saves_id_key
-	-_seasave
 	-_selections_to_store
-	-_series
-	-_station
-	-_svepa
-	-_validate
-	-_vessel
 ==
+	+get_current_file()
+	+get_latest_file()
 	+get_nr_bins()
+	+save_selection()
+	+sub_func()
 	-_build_frame()
 	-_initiate_frame()
+	-_input_ok()
 	-_is_validate_station_name()
-	-_load_svepa()
+	-_missing_input()
+	-_modify_seasave_file()
+	-_on_focus_out_depth()
+	-_on_focus_out_series()
+	-_on_return_load_svepa()
+	-_on_return_position()
+	-_on_return_seasave()
 	-_on_select_bin_size()
-	-_on_select_depth()
-	-_on_select_lat_lon()
 	-_on_select_station()
+	-_program_is_running()
 	-_run_seasave()
+	-_set_event_id()
+	-_set_instrument()
+	-_set_next_series()
+	-_set_parent_event_id()
+	-_temp()
+	-_time_disabled_widget()
 	-_validate_all()
 }
 
-class frames.TransectPreSystemFrame #781051 {
+class frames.TransectPreSystemFrame #C9031B {
+	+controller
 	+grid_frame
-	-_cruise
+	+instrument
 	-_new_transect
-	-_operator
 	-_saves_id_key
 	-_selections_to_store
-	-_series
 	-_transect
-	-_vessel
 ==
 	-_build_frame()
 	-_initiate_frame()
 	-_on_select_transect()
 }
 
-class page_start.PageStart #DDBDFD {
+class page_start.PageStart #165433 {
 	+controller
 	+notebook
 	+parent
 	+parent_app
-	+user, @p
+	+sbe_paths
 	-_current_instrument
 	-_frame_manage_ctd_casts
 	-_frame_select_instrument
-	-_frame_start_up
 	-_station_instruments
 	-_transect_instruments
+	user, @p
 ==
 	+close()
 	+startup()
 	+update_page()
+	-_add_subscribers()
 	-_create_frame()
-	-_on_instrument_select()
+	-_on_confirm_sensors()
+	-_on_select_instrument()
 	-_update_frame_manage_ctd_casts()
 }
 
-class saves.SaveSelection #48764A {
-	
+class saves.Defaults #F97A56 {
+	+data
+	+file_path
+	-_default_user_path
+	-_this_directory
+==
+	+get()
+	-_load()
+	-_load_default_user()
+	-_save_default_user()
+}
+
+class saves.SaveComponents #F97A56 {
+	-_components_to_store
+	-_defaults
+	-_saves
+	-_saves_id_key
+==
+	+add_components()
+	+load()
+	+save()
+}
+
+class saves.SaveSelection #F97A56 {
+	-_defaults
+	-_defaults, @ca
+	-_saves, @ca
+	-_saves_id_key, @ca
+	-_selections_to_store, @ca
 ==
 	+load_selection()
 	+save_selection()
 }
 
-class saves.Saves #48764A {
+class saves.Saves #F97A56 {
 	+data
 	+file_path
 ==
@@ -509,7 +718,7 @@ class saves.Saves #48764A {
 	-_save()
 }
 
-class test_scrollbar.messageList #D53DF1 {
+class test_scrollbar.messageList #E669E2 {
 	+innerFrame
 	+placeholder
 	+scrollFrame
@@ -519,7 +728,7 @@ class test_scrollbar.messageList #D53DF1 {
 	+del_message()
 }
 
-class test_scrollbar.scrollingFrame #D53DF1 {
+class test_scrollbar.scrollingFrame #E669E2 {
 	+canvas
 	+frame
 	+hsb
@@ -530,8 +739,18 @@ class test_scrollbar.scrollingFrame #D53DF1 {
 	+onFrameConfigure()
 }
 
+class translator.Translator #CB5A46 {
+	+names, @ca
+	+reversed_names
+==
+	+get_id()
+	+get_readable()
+}
+
 
 app.App <|-- PluginApp
+
+events.InvalidEventType <|-- Exception
 
 test_scrollbar.scrollingFrame <|-- Frame
 
@@ -539,49 +758,84 @@ test_scrollbar.messageList <|-- object
 
 
 
+components.ColoredFrame <|-- components.Common
 
+components.AddSampInfo <|-- components.Common
 
+components.LabelDropdownList <|-- components.Common
 
+components.LabelEntry <|-- components.Common
+
+components.LabelDoubleEntry <|-- components.Common
 
 components.CruiseLabelDoubleEntry <|-- components.LabelDoubleEntry
 
+components.CallbackButton <|-- components.Common
 
+components.DepthEntry <|-- components.Common
+
+components.IntEntry <|-- components.Common
 
 components.VesselLabelDoubleEntry <|-- components.LabelDoubleEntry
 
+components.SelectDirectory <|-- components.Common
+
+components.SelectedInstrumentTextFrame <|-- components.Common
+
+components.SelectedDefaultUserTextFrame <|-- components.Common
+
+components.SeriesEntryPicker <|-- components.Common
+
+components.SurfaceSoakSelector <|-- components.Common
+
+components.SensorTableOld <|-- components.Common
+
+components.SensorTable <|-- components.Common
+
+components.LabelCheckbox <|-- components.Common
+
+components.PositionEntries <|-- components.Common
+
+frames.MissingInformationError <|-- Exception
 
 
-
-
-
-
-
-
-frames.StationPreSystemFrame <|-- SaveSelection
 frames.StationPreSystemFrame <|-- frames.CommonFrameMethods
 frames.StationPreSystemFrame <|-- saves.SaveSelection
 
-frames.TransectPreSystemFrame <|-- SaveSelection
+frames.MetadataAdminFrame <|-- frames.CommonFrameMethods
+frames.MetadataAdminFrame <|-- saves.SaveSelection
+
+frames.MetadataConditionsFrame <|-- frames.CommonFrameMethods
+frames.MetadataConditionsFrame <|-- saves.SaveSelection
+
 frames.TransectPreSystemFrame <|-- frames.CommonFrameMethods
 frames.TransectPreSystemFrame <|-- saves.SaveSelection
 
-frames.ProcessingFrame <|-- SaveSelection
 frames.ProcessingFrame <|-- saves.SaveSelection
 
 
 
-frames.FrameStartUp <|-- SaveSelection
+frames.SelectionInfoFrame <|-- saves.SaveSelection
+
+frames.FrameInstrumentButtons <|-- saves.SaveSelection
+
 frames.FrameStartUp <|-- saves.SaveSelection
 
+frames.FrameManageCTDcastsStation <|-- saves.SaveSelection
 
 
-
-app.App o-- app.App
 
 saves.SaveSelection o-- saves.Saves
+saves.SaveSelection o-- saves.Defaults
+saves.SaveSelection o-- saves.Defaults
+
+saves.SaveComponents o-- saves.Saves
+saves.SaveComponents o-- saves.Defaults
 
 test_scrollbar.messageList o-- test_scrollbar.scrollingFrame
 test_scrollbar.messageList o-- test_scrollbar.messageList
+
+components.AddSampInfo o-- components.MonospaceLabel
 
 components.LabelDropdownList o-- components.MonospaceLabel
 components.LabelDropdownList o-- components.AutocompleteCombobox
@@ -592,7 +846,11 @@ components.LabelDoubleEntry o-- components.MonospaceLabel
 
 components.DepthEntry o-- components.MonospaceLabel
 
+components.IntEntry o-- components.MonospaceLabel
+
 components.SelectedInstrumentTextFrame o-- components.MonospaceLabel
+
+components.SelectedDefaultUserTextFrame o-- components.MonospaceLabel
 
 components.SeriesEntryPicker o-- components.MonospaceLabel
 
@@ -603,40 +861,46 @@ components.LabelCheckbox o-- components.MonospaceLabel
 components.PositionEntries o-- components.MonospaceLabel
 components.PositionEntries o-- components.MonospaceLabel
 
-frames.FrameProcessing o-- frames.ProcessingFrame
-frames.FrameProcessing o-- components.SelectedInstrumentTextFrame
-
-frames.FrameManageCTDcastsStation o-- frames.StationPreSystemFrame
-frames.FrameManageCTDcastsStation o-- components.SelectedInstrumentTextFrame
-
-frames.FrameManageCTDcastsTransect o-- frames.TransectPreSystemFrame
-frames.FrameManageCTDcastsTransect o-- components.SelectedInstrumentTextFrame
-
-page_start.PageStart o-- Controller
-page_start.PageStart o-- app.App
-page_start.PageStart o-- frames.FrameSelectInstrument
-page_start.PageStart o-- frames.FrameStartUp
-page_start.PageStart o-- frames.FrameManageCTDcastsStation
-page_start.PageStart o-- frames.FrameManageCTDcastsTransect
-
+frames.StationPreSystemFrame o-- frames.MetadataAdminFrame
+frames.StationPreSystemFrame o-- frames.MetadataConditionsFrame
 frames.StationPreSystemFrame o-- components.CruiseLabelDoubleEntry
-frames.StationPreSystemFrame o-- components.LabelDoubleEntry
 frames.StationPreSystemFrame o-- components.SeriesEntryPicker
 frames.StationPreSystemFrame o-- components.LabelDropdownList
 frames.StationPreSystemFrame o-- components.LabelEntry
 frames.StationPreSystemFrame o-- components.DepthEntry
 frames.StationPreSystemFrame o-- components.VesselLabelDoubleEntry
-frames.StationPreSystemFrame o-- components.CallbackButton
 frames.StationPreSystemFrame o-- components.PositionEntries
+frames.StationPreSystemFrame o-- components.AddSampInfo
+frames.StationPreSystemFrame o-- components.CallbackButton
+
+frames.FrameSelectInstrument o-- frames.FrameInstrumentButtons
+frames.FrameSelectInstrument o-- frames.SelectionInfoFrame
+frames.FrameSelectInstrument o-- components.SensorTable
+
+frames.FrameManageCTDcastsStation o-- frames.StationPreSystemFrame
+frames.FrameManageCTDcastsStation o-- frames.DataFileInfoFrame
+frames.FrameManageCTDcastsStation o-- components.SelectedInstrumentTextFrame
+frames.FrameManageCTDcastsStation o-- components.SelectedDefaultUserTextFrame
+
+frames.FrameManageCTDcastsTransect o-- frames.TransectPreSystemFrame
+frames.FrameManageCTDcastsTransect o-- components.SelectedInstrumentTextFrame
+
+frames.MetadataAdminFrame o-- components.LabelDropdownList
+
+frames.MetadataConditionsFrame o-- components.IntEntry
+frames.MetadataConditionsFrame o-- components.LabelDropdownList
+frames.MetadataConditionsFrame o-- components.LabelEntry
 
 frames.TransectPreSystemFrame o-- components.CruiseLabelDoubleEntry
-frames.TransectPreSystemFrame o-- components.LabelDoubleEntry
 frames.TransectPreSystemFrame o-- components.SeriesEntryPicker
 frames.TransectPreSystemFrame o-- components.LabelDropdownList
+frames.TransectPreSystemFrame o-- components.VesselLabelDoubleEntry
 frames.TransectPreSystemFrame o-- components.LabelCheckbox
 
-frames.FrameSelectInstrument o-- components.SelectDirectory
+frames.FrameStartUp o-- components.SensorTableOld
 
-frames.FrameStartUp o-- components.SensorTable
+page_start.PageStart o-- frames.FrameSelectInstrument
+page_start.PageStart o-- frames.FrameManageCTDcastsStation
+page_start.PageStart o-- frames.FrameManageCTDcastsTransect
 
 @enduml
