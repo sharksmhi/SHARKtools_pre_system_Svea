@@ -29,7 +29,8 @@ class EventTypes:
                 'load_svepa',
                 'missing_input',
                 'input_ok',
-                'select_default_user'
+                'select_default_user',
+                'add_components'
             ]
         for item in self.event_types:
             setattr(self, item, item)

@@ -7,19 +7,17 @@ from tkinter import messagebox
 from tkinter import ttk
 
 import psutil
+from ctd_processing.options import get_options
 from sharkpylib.tklib import tkinter_widgets as tkw
-
 from svepa import exceptions as svepa_exceptions
 
 from . import components
-from ..saves import SaveSelection
-
+from .. import lists
 from ..events import post_event
-from ..events import subscribe
 from ..events import print_subscribers
-
+from ..events import subscribe
 from ..gui.translator import Translator
-from ctd_processing.options import get_options
+from ..saves import SaveSelection
 
 TEXT_LJUST = 10
 
@@ -103,6 +101,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
+        subscribe('add_components', self._add_components)
 
     def save_selection(self):
         self._frame_metadata_admin.save_selection()
@@ -111,6 +110,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _set_instrument(self, instrument):
         self.instrument = instrument
+
+    def _add_components(self, components):
+        self._components.update(components)
 
     def _build_frame(self):
         frame = tk.Frame(self)
@@ -347,6 +349,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 data['add_samp'] = ', '.join(self._components[key].value)
             elif hasattr(self._components[key], 'value'):
                 data[key] = self._components[key].value
+
+        data['pumps'] = dict(PrimaryPump=self._components['pump1'].value,
+                             SecondaryPump=self._components['pump2'].value)
+
+        data['event_ids'] = dict(EventID=self._components['event_id'].value,
+                                 ParentEventID=self._components['parent_event_id'].value)
 
         metadata_admin = self._frame_metadata_admin.get_data()
         metadata_conditions = self._frame_metadata_conditions.get_data()
@@ -752,8 +760,10 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
 
         pump_frame = tk.Frame(self)
         pump_frame.grid(row=0, column=2, sticky='nw')
-        self._pump_1 = components.LabelEntry(pump_frame, 'pump1',  title='Primär pump SBE5'.ljust(20), data_type=int, row=0, column=0, **layout)
-        self._pump_2 = components.LabelEntry(pump_frame, 'pump2',  title='Sekundär pump SBE5'.ljust(20), data_type=int, row=1, column=0, **layout)
+        self._pump_1 = components.LabelDropdownList(pump_frame, 'pump1',  title='Primär pump SBE5'.ljust(20), row=0, column=0, **layout)
+        self._pump_2 = components.LabelDropdownList(pump_frame, 'pump2',  title='Sekundär pump SBE5'.ljust(20), row=1, column=0, **layout)
+        self._pump_1.values = lists.get_pump_list()
+        self._pump_2.values = lists.get_pump_list()
         tkw.grid_configure(pump_frame, nr_rows=2)
 
         ttk.Separator(self, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
@@ -761,17 +771,43 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
         self._frame_info = SelectionInfoFrame(self, self.controller)
         self._frame_info.grid(row=2, column=0, columnspan=3, sticky='nsew')
 
-        self.confirm_button = tk.Button(self, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
-                  command=self._on_confirm_sensors)
-        self.confirm_button.grid(row=3, column=0, columnspan=2, sticky='e')
+        option_frame = tk.Frame(self)
+        option_frame.grid(row=3, column=0, columnspan=2, sticky='e')
+        self.confirm_button = tk.Button(option_frame, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
+                                        command=self._on_confirm_sensors)
+        self.confirm_button.grid(row=0, column=0, sticky='e')
         self.confirm_button.configure(state='disabled')
+
+        # self.save_instruments_button = tk.Button(option_frame, text='Spara', command=self._save_instrument_set)
+        # self.save_instruments_button.grid(row=0, column=1, sticky='e')
+        #
+        # self.save_instruments_button = tk.Button(option_frame, text='Spara och skriv ut', command=self._save_and_print_instrument_set)
+        # self.save_instruments_button.grid(row=0, column=2, sticky='e')
 
         tkw.grid_configure(self, nr_rows=4, nr_columns=3)
 
         self._selections_to_store = ['_pump_1', '_pump_2']
 
+    def _get_save_instrument_set_path(self):
+        from pathlib import Path
+        directory = Path(Path(__file__).parent.parent.parent.parent, 'export')
+        directory.mkdir(parents=True, exist_ok=True)
+        return Path(directory, 'instrument_set.txt')
+
+    def _save_instrument_set(self):
+        path = self._get_save_instrument_set_path()
+
+    def _save_and_print_instrument_set(self):
+        pass
+
     def _on_confirm_sensors(self, *args):
+        # Check that pumps are not the same. Then post event.
+        if self._pump_1.value == self._pump_2.value:
+            messagebox.showerror('Kontrollera pump-id', 'Primär och sekundär pump kan inte vara samma')
+            return
         post_event('confirm_sensors', self.instrument)
+        post_event('add_components', dict(pump1=self._pump_1,
+                                          pump2=self._pump_2))
 
     def _on_change_config_path(self, ok):
         if not ok:
