@@ -18,6 +18,7 @@ class Translator:
              'orderer': 'Beställare',
              'slabo':   'Provtagande laboratorium',
              'alabo':   'Analyserande laboratorium',
+             'refsk':   'Provtagningsmetod referens',
 
              'wadep': 'Ekolodsdjup vid station [m]',
              'windir': 'Vindriktning',

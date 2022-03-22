@@ -97,9 +97,7 @@ class PageStart(tk.Frame):
 
     def _on_confirm_sensors(self, *args):
         from ..events import nr_subscribers
-        print('aa', nr_subscribers('confirm_sensors'))
         instrument = self._frame_select_instrument.instrument
-        print('bb', nr_subscribers('confirm_sensors'))
         if not instrument:
             return
         if instrument == self._current_instrument:
@@ -107,11 +105,8 @@ class PageStart(tk.Frame):
             self.notebook.select_frame('Försystem (Inför station / På station)')
             return
         self._current_instrument = instrument
-        print('cc', nr_subscribers('confirm_sensors'))
         self._update_frame_manage_ctd_casts()
-        print('dd', nr_subscribers('confirm_sensors'))
 
         self.notebook.set_state('normal', 'Försystem (Inför station / På station)')
         self.notebook.select_frame('Försystem (Inför station / På station)')
-        print('xx', nr_subscribers('confirm_sensors'))
 

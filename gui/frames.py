@@ -516,7 +516,7 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         layout = dict(padx=5, pady=2, sticky='nw')
 
-        text_ljust = 25
+        text_ljust = 30
 
         self._components = {}
         self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get_readable('mprog').ljust(text_ljust), row=0, column=0, **layout)
@@ -524,11 +524,12 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get_readable('orderer').ljust(text_ljust), row=2, column=0, **layout)
         self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get_readable('slabo').ljust(text_ljust), row=3, column=0, **layout)
         self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get_readable('alabo').ljust(text_ljust), row=4, column=0, **layout)
+        self._components['refsk'] = components.LabelEntry(frame, 'refsk', title=translator.get_readable('refsk').ljust(text_ljust), state='disabled', width=24, row=5, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=5)
 
         # Store selection
-        to_store = ['mprog', 'proj', 'orderer', 'slabo', 'alabo']
+        to_store = ['mprog', 'proj', 'orderer', 'slabo', 'alabo', 'refsk']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _initiate_frame(self):
