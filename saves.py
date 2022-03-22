@@ -28,10 +28,12 @@ class Defaults:
         self._default_user_path = pathlib.Path(self._this_directory, 'default.user')
 
         self.file_path = None
-        if not user:
-            user = self._load_default_user()
-        if not user:
-            user = 'default'
+
+        user = user or self.user
+        # if not user:
+        #     user = self._load_default_user()
+        # if not user:
+        #     user = 'default'
 
         self.file_path = get_default_user_file_path(user)
         if not self.file_path:
@@ -50,6 +52,10 @@ class Defaults:
         if self.file_path and self.file_path.exists():
             with open(self.file_path) as fid:
                 self.data = yaml.load(fid, Loader=SafeLoader)
+
+    @property
+    def user(self):
+        return self._load_default_user() or 'default'
 
     def get(self, key, default=None):
         return self.data.get(key, default)

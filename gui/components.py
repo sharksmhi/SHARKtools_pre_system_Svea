@@ -918,7 +918,7 @@ class SelectedDefaultUserTextFrame(tk.Frame, Common):
 
         self._default_users = saves.get_default_users()
 
-        self._stringvar = tk.StringVar()
+        # self._stringvar = tk.StringVar()
 
         MonospaceLabel(self, text='Användare').grid(column=0, padx=5, pady=5, sticky='w')
 
@@ -931,12 +931,12 @@ class SelectedDefaultUserTextFrame(tk.Frame, Common):
         post_event(f'select_default_user', user)
 
     def get(self):
-        return self._stringvar.get()
+        return self.user_selection_widget.get()
 
     def set(self, item, **kwargs):
         if item not in self._default_users:
             return
-        self._stringvar.set(item)
+        self.user_selection_widget.set(item)
 
 
 class SeriesEntryPicker(tk.Frame, Common):

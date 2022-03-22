@@ -96,7 +96,6 @@ class PageStart(tk.Frame):
         self.notebook.set_state('disabled', 'Försystem (Inför station / På station)')
 
     def _on_confirm_sensors(self, *args):
-        from ..events import nr_subscribers
         instrument = self._frame_select_instrument.instrument
         if not instrument:
             return

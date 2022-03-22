@@ -18,6 +18,7 @@ from ..events import print_subscribers
 from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import SaveSelection
+from ..saves import Defaults
 
 TEXT_LJUST = 10
 
@@ -1252,6 +1253,8 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
         self._saves_id_key = 'FrameManageCTDcastsStation'
         self._selections_to_store = [self.default_user_frame]
 
+        self._set_default_user()
+
         subscribe('focus_out_series', self._update_data_file_info)
         subscribe('series_step', self._update_data_file_info)
         subscribe('set_next_series', self._update_data_file_info)
@@ -1283,6 +1286,12 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
         ttk.Separator(frame, orient='horizontal').grid(row=5, column=0, sticky='ew')
 
         tkw.grid_configure(frame, nr_rows=6)
+
+    def _set_default_user(self):
+        default_user = Defaults().user
+        print('default_user', '::::::::::::::::', default_user)
+        self.default_user_frame.set(default_user)
+        post_event('select_default_user', default_user)
 
     def _update_data_file_info(self, data):
         self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
