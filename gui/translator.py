@@ -1,14 +1,15 @@
 
 
 class Translator:
-    names = {'depth': 'Plotdjup',
-             'bin_size': 'Bin-storlek',
-             'cruise': 'Cruise',
+    names = {'depth': 'Maxdjup i plot (m)',
+             'bin_size': 'Djupgrid (m)',
+             'cruise': 'Expedition nr',
              'vessel': 'Fartyg',
              'series': 'Serie',
+             'tail': 'Testkast',
              'station': 'Station',
-             'distance': 'Avstånd station (m)',
-             'operator': 'Operator',
+             'distance': 'Avstånd till station (m)',
+             'operator': 'CTD operatör',
              'position': 'Position',
              'event_id': 'EventID      ',
              'parent_event_id': 'ParentEventID',

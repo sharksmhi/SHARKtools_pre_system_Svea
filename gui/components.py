@@ -89,9 +89,7 @@ class MonospaceLabel(tk.Label):
 
 class Common:
     def set_color(self, color='black'):
-        print('TRYING to set color')
         if hasattr(self, 'monospace_label'):
-            print('Setting color:', color)
             self.monospace_label.set_color(color)
 
 
@@ -572,7 +570,7 @@ class DepthEntry(tk.Frame, Common):
         self.data_type = data_type
         self.state = state
 
-        self._bottom_depth_string_base = 'Bottom depth: '
+        self._bottom_depth_string_base = 'Bottendjup (m): '
         self._bottom_depth = None
         self.step = None
 
@@ -1376,7 +1374,7 @@ class SensorTable(tk.Frame, Common):
         column_width = [30, 15]
 
         tk.Button(self, text='Parameter', width=column_width[0], command=lambda x='parameter': self._sort_by(x)).grid(row=0, column=0, **layout)
-        tk.Button(self, text='Serial Number', width=column_width[1], command=lambda x='serial_number': self._sort_by(x)).grid(row=0, column=1, **layout)
+        tk.Button(self, text='Serienummer', width=column_width[1], command=lambda x='serial_number': self._sort_by(x)).grid(row=0, column=1, **layout)
 
         self._stringvar_par = []
         self._stringvar_serial_number = []
@@ -1477,10 +1475,9 @@ class LabelCheckbox(tk.Frame, Common):
         self.checkbutton.grid(row=0, column=0, **layout)
 
         self.monospace_label = MonospaceLabel(self, text=self.title)
-        self.monospace_label.grid(column=1, **layout)
+        self.monospace_label.grid(row=0, column=1, **layout)
 
     def _on_toggle(self, *args):
-        print(self.intvar.get())
         post_event(f'toggle_{self._id}', self.intvar.get())
 
     def get(self):
@@ -1488,6 +1485,10 @@ class LabelCheckbox(tk.Frame, Common):
 
     def set(self, state):
         self.intvar.set(state)
+
+    @property
+    def value(self):
+        return self.get()
 
 
 class PositionEntries(tk.Frame, Common):

@@ -1,3 +1,5 @@
+import datetime
+import pathlib
 import threading
 import time
 import tkinter as tk
@@ -17,8 +19,8 @@ from ..events import post_event
 from ..events import print_subscribers
 from ..events import subscribe
 from ..gui.translator import Translator
-from ..saves import SaveSelection
 from ..saves import Defaults
+from ..saves import SaveSelection
 
 TEXT_LJUST = 10
 
@@ -91,7 +93,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('confirm_sensors', self._set_instrument)
         subscribe('confirm_sensors', self._set_next_series)
-        subscribe('focus_out_series', self._on_focus_out_series)
+        subscribe('focus_out_cruise', self._set_next_series)
+        # subscribe('focus_out_series', self._on_focus_out_series)
         subscribe('select_station', self._on_select_station)
         subscribe('focus_out_station', self._on_select_station)
         subscribe('return_position', self._on_return_position)
@@ -145,11 +148,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self._components = {}
         self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series',  title=translator.get_readable('series'), row=1, column=0, **layout)
-        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=25, autocomplete=True, row=2, column=0, **layout)
-        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=3, column=0, **layout)
-        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=4, column=0, **layout)
-        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=1, column=0, **layout)
+        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=2, column=0, **layout)
+        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=3, column=0, **layout)
+        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=4, column=0, **layout)
+        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
+        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=6, column=0, **layout)
 
         self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
@@ -158,10 +162,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',  title=translator.get_readable('event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
         self._components['parent_event_id'] = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get_readable('parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
 
-        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Load SVEPA', row=0, column=0, **layout)
-        self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validate', row=0, column=1, **layout)
+        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Ladda information från SVEPA', row=0, column=0, **layout)
+        self._components['svepa'].button.config(state='disabled')
+        self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
         self._components['validate'].button.config(state='disabled')
-        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Run Seasave', row=0, column=2, **layout)
+        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Starta Seasave', row=0, column=2, **layout)
         self._components['seasave'].button.config(bg='#6691bd')
 
         tkw.grid_configure(frame_left, nr_rows=6)
@@ -201,10 +206,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         return latest_series_path
 
     def get_current_file(self):
+        tail = None
+        if self._components['tail'].value:
+            tail = 'test'
         kwargs = {'instrument': self.instrument,
                   'ship': self._components['vessel'].code,
                   'cruise': self._components['cruise'].nr,
-                  'serno': self._components['series'].value}
+                  'serno': self._components['series'].value,
+                  'tail': tail}
         current_file_path = self.controller.get_data_file_path(**kwargs)
         return current_file_path
 
@@ -377,23 +386,27 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         data['instrument'] = self.instrument
         data['position'] = ['', '', '']  # We dont set position
 
+        if data.get('tail'):
+            data['tail'] = 'test'
+
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
         meta_cond = {key.upper(): value for key, value in metadata_conditions.items()}
         self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond)
 
     def _on_return_seasave(self, *args):
-        #TODO: Validate selection here
+        if self._components['tail'].value:
+            ans = messagebox.askyesno('Skapar testfil', 'Vill du skapa en testfil?')
+            if not ans:
+                return
         self._run_seasave()
 
     def _run_seasave(self):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
-            # self._time_disabled_widget(self._components['seasave'].button, 30)
             self._time_disabled_widget(self._components['seasave'].button,
                                        program_running='Seasave.exe',
-                                       # then_run=self._create_sensor_info_file
                                        )
         except MissingInformationError as e:
             missing_string = '\n'.join(e.missing_list)
@@ -401,8 +414,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
-        except:
-            messagebox.showerror('Run seasave', f'Något gick fel!\n{traceback.format_exc()}')
+        except Exception as e:
+            messagebox.showerror('Run seasave', f'Något gick fel!\n{e}\n\n{traceback.format_exc()}')
             raise
 
     def _program_is_running(self, program):
@@ -518,13 +531,14 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         layout = dict(padx=5, pady=2, sticky='nw')
 
         text_ljust = 30
+        width = 15
 
         self._components = {}
-        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get_readable('mprog').ljust(text_ljust), row=0, column=0, **layout)
-        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get_readable('proj').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get_readable('orderer').ljust(text_ljust), row=2, column=0, **layout)
-        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get_readable('slabo').ljust(text_ljust), row=3, column=0, **layout)
-        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get_readable('alabo').ljust(text_ljust), row=4, column=0, **layout)
+        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get_readable('mprog').ljust(text_ljust), width=width, row=0, column=0, **layout)
+        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get_readable('proj').ljust(text_ljust), width=width, row=1, column=0, **layout)
+        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get_readable('orderer').ljust(text_ljust), width=width, row=2, column=0, **layout)
+        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get_readable('slabo').ljust(text_ljust), width=width, row=3, column=0, **layout)
+        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get_readable('alabo').ljust(text_ljust), width=width, row=4, column=0, **layout)
         self._components['refsk'] = components.LabelEntry(frame, 'refsk', title=translator.get_readable('refsk').ljust(text_ljust), state='disabled', width=24, row=5, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=5)
@@ -804,6 +818,9 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
 
     def _on_confirm_sensors(self, *args):
         # Check that pumps are not the same. Then post event.
+        if not (self._pump_1.value and self._pump_2.value):
+            messagebox.showerror('Kontrollera pump-id', 'Information om pump/pumpar saknas')
+            return
         if self._pump_1.value == self._pump_2.value:
             messagebox.showerror('Kontrollera pump-id', 'Primär och sekundär pump kan inte vara samma')
             return
@@ -833,11 +850,13 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
             self._frame_instrument_buttons.deselect()
             messagebox.showwarning('Rotkatalog saknas!', 'Du måste ange rotkatalog för config och data')
             return
-
-        self._frame_info.update_info(self.instrument)
-        instrument_info = self.controller.get_sensor_info_in_xmlcon(self.instrument)
-        self._sensor_table.update_data(instrument_info)
-        self.confirm_button.configure(state='normal')
+        try:
+            self._frame_info.update_info(self.instrument)
+            instrument_info = self.controller.get_sensor_info_in_xmlcon(self.instrument)
+            self._sensor_table.update_data(instrument_info)
+            self.confirm_button.configure(state='normal')
+        except:
+            messagebox.showerror('Något gick fel!', str(traceback.format_exc()))
 
     @property
     def config_root_directory(self):
@@ -886,6 +905,8 @@ class DataFileInfoFrame(tk.Frame):
         tk.Label(self, text='Senast fil på server:').grid(row=r, column=0, sticky='w', **layout)
         tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
 
+        tk.Button(self, text='Uppdatera', command=lambda: post_event('update_server_info', None)).grid(row=r, column=2, sticky='w', **layout)
+
         r += 1
         tk.Label(self, text='Fil som kommer skapas:').grid(row=r, column=0, sticky='w', **layout)
         tk.Label(self, textvariable=self._stringvar_current_file).grid(row=r, column=1, sticky='w', **layout)
@@ -915,7 +936,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self.latest_instrument = None
 
         self._selections_to_store = ['_stringvar_config_root_path',
-                                     '_stringvar_data_root_path_local',
+                                     '_stringvar_data_path_local',
                                      '_stringvar_data_root_path_server']
 
         self._build_frame()
@@ -926,7 +947,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
     def _set_paths_in_controller(self):
         self._set_config_root_directory()
-        self._set_data_root_directory_local()
+        self._set_data_directory_local()
         self._set_data_root_directory_server()
 
     def _build_frame(self):
@@ -934,7 +955,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
                       pady=3)
 
         self._stringvar_config_root_path = tk.StringVar()
-        self._stringvar_data_root_path_local = tk.StringVar()
+        self._stringvar_data_path_local = tk.StringVar()
         self._stringvar_data_root_path_server = tk.StringVar()
         self._stringvar_ctd = tk.StringVar()
         self._stringvar_xmlcon = tk.StringVar()
@@ -947,13 +968,13 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
-        root_data_local = tk.Label(self, text='Rotkatalog för data (lokal disk):')
-        root_data_local.grid(row=r, column=0, sticky='w', **layout)
-        root_data_local.bind('<Control-Button-1>', self._on_click_root_data_local)
-        tk.Label(self, textvariable=self._stringvar_data_root_path_local).grid(row=r, column=1, sticky='w', **layout)
+        data_local = tk.Label(self, text='Sparar filer till mapp:')
+        data_local.grid(row=r, column=0, sticky='w', **layout)
+        data_local.bind('<Control-Button-1>', self._on_click_data_local)
+        tk.Label(self, textvariable=self._stringvar_data_path_local).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
-        root_data_server = tk.Label(self, text='Rotkatalog för data (server):')
+        root_data_server = tk.Label(self, text='Rotkatalog för data på server:')
         root_data_server.grid(row=r, column=0, sticky='w', **layout)
         root_data_server.bind('<Control-Button-1>', self._on_click_root_data_server)
         tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
@@ -993,11 +1014,17 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             self.reset_info()
         post_event('change_config_path', ok)
 
-    def _on_click_root_data_local(self, event=None):
+    def _on_click_data_local(self, event=None):
         directory = filedialog.askdirectory()
         if not directory:
             return
-        ok = self._set_data_root_directory_local(directory)
+        # Add year folder if not present
+        directory = pathlib.Path(directory)
+        year = directory.name
+        if not (len(year) == 4 and year.isdigit()):
+            directory = pathlib.Path(directory, str(datetime.datetime.now().year))
+            directory.mkdir(parents=True, exist_ok=True)
+        ok = self._set_data_directory_local(directory)
         if ok:
             self.save_selection()
             self.update_info()
@@ -1047,7 +1074,10 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             self.controller.ctd_config_root_directory = directory
             self._stringvar_config_root_path.set(directory or '')
         except FileNotFoundError:
-            raise
+            messagebox.showerror('Fel i sökväg',
+                                 f'Kan inte hitta rätt sökväg: '
+                                 f'\n{traceback.format_exc()}')
+            return False
         except:
             messagebox.showerror('Val av instrument',
                                  f'Rotkatalogens struktur för configfiler verkar inte stämma: '
@@ -1055,14 +1085,17 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             return False
         return True
 
-    def _set_data_root_directory_local(self, directory=None):
-        if not directory:
-            directory = self._stringvar_data_root_path_local.get()
+    def _set_data_directory_local(self, directory=None):
+        directory = directory or self._stringvar_data_path_local.get()
+        # if not directory:
+        #     messagebox.showerror('Sätt lokal data',
+        #                          f'Ingen mapp för lokal data vald!')
+        #     return False
         try:
-            self.controller.ctd_data_root_directory = directory
-            self._stringvar_data_root_path_local.set(self.controller.ctd_data_root_directory or '')
+            self.controller.ctd_data_directory = directory
+            self._stringvar_data_path_local.set(self.controller.ctd_data_directory or '')
         except:
-            messagebox.showerror('Val av instrument',
+            messagebox.showerror('Sätt lokal data',
                                  f'Något gick fel när rotkatalogen för lokal data skulle sättas: '
                                  f'\n{traceback.format_exc()}')
             return False
@@ -1091,11 +1124,11 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
     @property
     def data_root_path_local(self):
-        return self._stringvar_data_root_path_local.get()
+        return self._stringvar_data_path_local.get()
 
     @data_root_path_local.setter
     def data_root_path_local(self, path):
-        self._stringvar_data_root_path_local.set(str(path))
+        self._stringvar_data_path_local.set(str(path))
 
     @property
     def data_root_path_server(self):
@@ -1256,10 +1289,12 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
         self._set_default_user()
 
         subscribe('focus_out_series', self._update_data_file_info)
+        subscribe('toggle_tail', self._update_data_file_info)
         subscribe('series_step', self._update_data_file_info)
         subscribe('set_next_series', self._update_data_file_info)
         subscribe('focus_out_cruise', self._update_data_file_info)
         subscribe('load_svepa', self._update_data_file_info)
+        subscribe('update_server_info', self._update_data_file_info)
 
     def _build_frame(self):
 

@@ -30,7 +30,9 @@ class EventTypes:
                 'missing_input',
                 'input_ok',
                 'select_default_user',
-                'add_components'
+                'add_components',
+                'toggle_tail',
+                'update_server_info'
             ]
         for item in self.event_types:
             setattr(self, item, item)
@@ -46,7 +48,7 @@ def _remove_existing(event_type, func):
     for sub in [subscribers_before, subscribers, subscribers_after]:
         for f in list(sub.get(event_type, [])):
             if func_part == str(f).split()[2]:
-                print('REMOVING:', func_part)
+                # print('REMOVING:', func_part)
                 sub[event_type].remove(f)
 
 
