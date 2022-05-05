@@ -28,6 +28,8 @@ translator = Translator()
 
 options = get_options()
 
+SHIP_TO_INTERNAL = {'77SE': '7710'}
+
 
 class MissingInformationError(Exception):
     def __init__(self, missing_list, message=''):
@@ -116,6 +118,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.instrument = instrument
 
     def _add_components(self, components):
+        print('components', components)
         self._components.update(components)
 
     def _build_frame(self):
@@ -386,6 +389,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         data['instrument'] = self.instrument
         data['position'] = ['', '', '']  # We dont set position
 
+        internal_ship_code = SHIP_TO_INTERNAL.get(data['ship_code'], data['ship_code'])
+        data['lims_job'] = f"{data['year']}{internal_ship_code}-{data['serno']}"
+
         if data.get('tail'):
             data['tail'] = 'test'
 
@@ -614,14 +620,17 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components = {}
         self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get_readable('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
         self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get_readable('windir').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['winsp'] = components.IntEntry(frame, 'winsp', title=translator.get_readable('winsp').ljust(text_ljust), min_value=options.get('winsp').get('min'), max_value=options.get('winsp').get('max'), row=2, column=0, **layout)
-        self._components['airtemp'] = components.IntEntry(frame, 'airtemp', title=translator.get_readable('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
-        self._components['airpres'] = components.IntEntry(frame, 'airpres', title=translator.get_readable('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
+        self._components['winsp'] = components.FloatEntry(frame, 'winsp', title=translator.get_readable('winsp').ljust(text_ljust), min_value=options.get('winsp').get('min'), max_value=options.get('winsp').get('max'), row=2, column=0, **layout)
+        self._components['airtemp'] = components.FloatEntry(frame, 'airtemp', title=translator.get_readable('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
+        self._components['airpres'] = components.FloatEntry(frame, 'airpres', title=translator.get_readable('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
         self._components['weath'] = components.LabelDropdownList(frame, 'weath', title=translator.get_readable('weath').ljust(text_ljust), row=5, column=0, **layout)
         self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=6, column=0, **layout)
         self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=7, column=0, **layout)
         self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=8, column=0, **layout)
         self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=9, column=0, **layout)
+
+        self._components['winsp'].focus_next_widget = self._components['airtemp']
+        self._components['airtemp'].focus_next_widget = self._components['airpres']
 
         tkw.grid_configure(frame, nr_rows=10)
 

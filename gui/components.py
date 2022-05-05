@@ -88,9 +88,29 @@ class MonospaceLabel(tk.Label):
 
 
 class Common:
+    _focus_next_widget = None
+
     def set_color(self, color='black'):
         if hasattr(self, 'monospace_label'):
             self.monospace_label.set_color(color)
+
+    def _focus_next(self):
+        if not self._focus_next_widget:
+            return
+        if not hasattr(self._focus_next_widget, 'entry'):
+            return
+        entry = getattr(self._focus_next_widget, 'entry')
+        if not hasattr(entry, 'focus_set'):
+            return
+        entry.focus_set()
+
+    @property
+    def focus_next_widget(self):
+        return self._focus_next_widget
+
+    @focus_next_widget.setter
+    def focus_next_widget(self, widget):
+        self._focus_next_widget = widget
 
 
 class ColoredFrame(tk.Frame, Common):
@@ -667,6 +687,97 @@ class DepthEntry(tk.Frame, Common):
             self.step = 25
 
         return (math.ceil(depth / self.step)) * self.step
+
+
+class FloatEntry(tk.Frame, Common):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 width=8,
+                 title='FloatEntry',
+                 state='normal',
+                 min_value=None,
+                 max_value=None,
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self._id = id
+        self.title = title
+        self.width = width
+        self.state = state
+        self.min_value = min_value
+        self.max_value = max_value
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._create_frame()
+
+    def __str__(self):
+        return f'FloatEntry._id = {self._id}'
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
+
+        self._stringvar = tk.StringVar()
+        # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
+        self._stringvar.trace("w", self._on_change_entry)
+
+        self.entry = tk.Entry(self, textvariable=self._stringvar, width=self.width)
+        self.entry.bind('<FocusOut>', self._on_focus_out)
+        self.entry.bind('<Return>', self._on_focus_out)
+        self.entry.grid(row=0, column=1, pady=(5, 0), padx=5, sticky='e')
+        self.entry.configure(state=self.state)
+
+        tkw.grid_configure(self, nr_columns=2)
+
+    def _on_focus_out(self, *args):
+        string = self._stringvar.get()
+        if string:
+            if self.min_value is not None and float(string) < self.min_value:
+                string = str(self.min_value)
+            if self.max_value is not None and float(string) > self.max_value:
+                string = str(self.max_value)
+            self._stringvar.set(string)
+        post_event(f'focus_out_{self._id}', self.value)
+        self._focus_next()
+
+    def _on_change_entry(self, *args):
+        string = self._stringvar.get()
+        new_chars = []
+        for s in string:
+            if s.isdigit():
+                new_chars.append(s)
+            elif s in ',.' and '.' not in new_chars:
+                new_chars.append('.')
+        self._stringvar.set(''.join(new_chars))
+
+    @property
+    def value(self):
+        return self._stringvar.get()
+
+    @value.setter
+    def value(self, value):
+        if not value and value is not 0:
+            self._stringvar.set('')
+            return
+        self._stringvar.set(str(value))
+        self._on_change_entry()
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
 
 
 class IntEntry(tk.Frame, Common):
