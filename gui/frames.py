@@ -629,9 +629,6 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=8, column=0, **layout)
         self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=9, column=0, **layout)
 
-        self._components['winsp'].focus_next_widget = self._components['airtemp']
-        self._components['airtemp'].focus_next_widget = self._components['airpres']
-
         tkw.grid_configure(frame, nr_rows=10)
 
         # Store selection
