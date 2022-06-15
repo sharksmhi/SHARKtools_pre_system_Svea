@@ -401,6 +401,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond)
 
     def _on_return_seasave(self, *args):
+        post_event('update_components', None)
         if self._components['tail'].value:
             ans = messagebox.askyesno('Skapar testfil', 'Vill du skapa en testfil?')
             if not ans:
@@ -771,6 +772,7 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
         subscribe('change_config_path', self._on_change_config_path)
         subscribe('change_data_path_local', self._on_change_data_path)
         subscribe('change_data_path_server', self._on_change_data_path)
+        subscribe('update_components', self._add_components)
 
     def _build_frame(self):
         layout = dict(padx=5, pady=5, sticky='nsew')
@@ -831,6 +833,9 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
             messagebox.showerror('Kontrollera pump-id', 'Primär och sekundär pump kan inte vara samma')
             return
         post_event('confirm_sensors', self.instrument)
+        self._add_components()
+
+    def _add_components(self, *args, **kwargs):
         post_event('add_components', dict(pump1=self._pump_1,
                                           pump2=self._pump_2))
 
