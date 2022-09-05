@@ -11,6 +11,7 @@ import sharkpylib.tklib.tkinter_widgets as tkw
 
 import core
 from . import gui
+from .events import subscribe
 from plugins.plugin_app import PluginApp
 
 ALL_PAGES = dict()
@@ -71,8 +72,6 @@ class App(PluginApp):
         self.page_history = ['PageStart']
         self.show_frame('PageStart')
 
-        # self.update_all()
-
     def close(self):
         for page_name, frame in self.frames.items():
             if self.pages_started.get(page_name):
@@ -110,9 +109,6 @@ class App(PluginApp):
             self.container.columnconfigure(0, weight=1) 
             
             self.frames[page_name] = frame
-
-    def _set_load_frame(self):
-        pass
 
     def update_all(self):
         for page_name, frame in self.frames.items():

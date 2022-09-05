@@ -71,6 +71,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def __init__(self,
                  parent,
                  controller=None,
+                 main_app=None,
                  **kwargs):
         self.grid_frame = {'padx': 5,
                            'pady': 5,
@@ -81,6 +82,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self.controller = controller
         self.instrument = None
+        self.main_app = main_app
 
         self.grid(**self.grid_frame)
 
@@ -104,6 +106,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('button_svepa', self._on_return_load_svepa)
         subscribe('button_seasave', self._on_return_seasave)
+        subscribe('button_goto_processing_simple', self._on_return_goto_processing_simple)
+        subscribe('button_goto_processing_advanced', self._on_return_goto_processing_advanced)
 
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
@@ -171,6 +175,13 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['validate'].button.config(state='disabled')
         self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Starta Seasave', row=0, column=2, **layout)
         self._components['seasave'].button.config(bg='#6691bd')
+        self._components['goto_processing_simple'] = components.CallbackButton(frame_bottom, 'goto_processing_simple', title='Gå till enkel processering', row=0,
+                                                                 column=3, **layout)
+        self._components['goto_processing_advanced'] = components.CallbackButton(frame_bottom, 'goto_processing_advanced',
+                                                                               title='Gå till avancerad processering',
+                                                                               row=0,
+                                                                               column=4, **layout)
+        self._components['validate'].button.config(state='disabled')
 
         tkw.grid_configure(frame_left, nr_rows=6)
         tkw.grid_configure(frame_right, nr_rows=4)
@@ -234,18 +245,18 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['series'].set(next_serno)
         post_event('set_next_series', next_serno)
 
-    def _on_focus_out_series(self, serno):
-        cruise, year = self._components['cruise'].get()
-        ship_name, ship_code = self._components['vessel'].get()
-        series = self.controller.series_exists(server=True,
-                                                cruise=cruise,
-                                                year=year,
-                                                ship=ship_code,
-                                                serno=serno,
-                                                return_file_name=True)
-
-        if series:
-            messagebox.showwarning(f'Series already exists', f'{series}')
+    # def _on_focus_out_series(self, serno):
+    #     cruise, year = self._components['cruise'].get()
+    #     ship_name, ship_code = self._components['vessel'].get()
+    #     series = self.controller.series_exists(server=True,
+    #                                             cruise=cruise,
+    #                                             year=year,
+    #                                             ship=ship_code,
+    #                                             serno=serno,
+    #                                             return_file_name=True)
+    #
+    #     if series:
+    #         messagebox.showwarning(f'Series already exists', f'{series}')
 
     def _on_select_station(self, station_name, *args, **kwargs):
         # station_name = self._components['station'].value
@@ -333,13 +344,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return None
         return float(plot_depth) / int(bin_size)
 
-    def _validate_all(self):
-        """
-        Validates if station and depth has matching information.
-        :return:
-        """
-        pass
-
     def _modify_seasave_file(self):
         data = {}
         for key, comp in self._components.items():
@@ -378,7 +382,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 missing.append(key)
 
         missing.extend([key for key, value in metadata_admin.items() if not value])
-        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment', 'comnt_visit']])
+        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment', 'comnt_visit', 'wadep_bot']])
 
         post_event('input_ok', missing)
         if missing:
@@ -408,12 +412,23 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 return
         self._run_seasave()
 
+    def _on_return_goto_processing_simple(self, *args):
+        if not self.main_app:
+            return
+        self.main_app.show_subframe('SHARKtools_ctd_processing', 'PageSimple')
+
+    def _on_return_goto_processing_advanced(self, *args):
+        if not self.main_app:
+            return
+        self.main_app.show_subframe('SHARKtools_ctd_processing', 'PageStart')
+
     def _run_seasave(self):
         try:
             self._modify_seasave_file()
             self.controller.run_seasave()
             self._time_disabled_widget(self._components['seasave'].button,
                                        program_running='Seasave.exe',
+                                       then_run=self._on_close_seasave
                                        )
         except MissingInformationError as e:
             missing_string = '\n'.join(e.missing_list)
@@ -422,8 +437,16 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
         except Exception as e:
-            messagebox.showerror('Run seasave', f'Något gick fel!\n{e}\n\n{traceback.format_exc()}')
+            sep = '-'*70
+            messagebox.showerror('Run seasave', f'Något gick fel!\n{sep}\n{e}\n\n{sep}\n{traceback.format_exc()}')
             raise
+
+    def _on_close_seasave(self):
+        post_event('close_seasave', None)
+        self._components['station'].set('')
+        self._components['depth'].set('')
+        self._components['depth'].water_depth = ''
+        self._components['series'].increase()
 
     def _program_is_running(self, program):
         for p in psutil.process_iter():
@@ -602,6 +625,8 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
         subscribe('select_default_user', self._on_change_default_user)
+        subscribe('set_water_depth', self._on_set_water_depth)
+        subscribe('close_seasave', self._on_close_seasave)
 
         self._build_frame()
 
@@ -619,22 +644,59 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         text_ljust = 25
 
         self._components = {}
-        self._components['wadep'] = components.IntEntry(frame, 'wadep', title=translator.get_readable('wadep').ljust(text_ljust), min_value=options.get('wadep').get('min'), max_value=options.get('wadep').get('max'), row=0, column=0, **layout)
-        self._components['windir'] = components.LabelDropdownList(frame, 'windir', title=translator.get_readable('windir').ljust(text_ljust), row=1, column=0, **layout)
-        self._components['winsp'] = components.FloatEntry(frame, 'winsp', title=translator.get_readable('winsp').ljust(text_ljust), min_value=options.get('winsp').get('min'), max_value=options.get('winsp').get('max'), row=2, column=0, **layout)
-        self._components['airtemp'] = components.FloatEntry(frame, 'airtemp', title=translator.get_readable('airtemp').ljust(text_ljust), min_value=options.get('airtemp').get('min'), max_value=options.get('airtemp').get('max'), row=3, column=0, **layout)
-        self._components['airpres'] = components.FloatEntry(frame, 'airpres', title=translator.get_readable('airpres').ljust(text_ljust), min_value=options.get('airpres').get('min'), max_value=options.get('airpres').get('max'), row=4, column=0, **layout)
-        self._components['weath'] = components.LabelDropdownList(frame, 'weath', title=translator.get_readable('weath').ljust(text_ljust), row=5, column=0, **layout)
-        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=6, column=0, **layout)
-        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=7, column=0, **layout)
-        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=8, column=0, **layout)
-        self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=9, column=0, **layout)
 
-        tkw.grid_configure(frame, nr_rows=10)
+        self._components['wadep_bot'] = components.LabelLabel(frame, 'wadep_bot',
+                                                              title=translator.get_readable('wadep_bot').ljust(
+                                                                  text_ljust),
+                                                              row=0, column=0, **layout)
+
+        self._components['wadep'] = components.IntEntry(frame, 'wadep',
+                                                        title=translator.get_readable('wadep').ljust(text_ljust),
+                                                        min_value=options.get('wadep').get('min'),
+                                                        max_value=options.get('wadep').get('max'), row=1, column=0,
+                                                        **layout)
+
+        self._components['winsp'] = components.FloatEntry(frame, 'winsp',
+                                                          title=translator.get_readable('winsp').ljust(text_ljust),
+                                                          min_value=options.get('winsp').get('min'),
+                                                          max_value=options.get('winsp').get('max'), row=2, column=0,
+                                                          **layout)
+
+        self._components['windir'] = components.LabelDropdownList(frame, 'windir',
+                                                                  title=translator.get_readable('windir').ljust(text_ljust),
+                                                                  row=3, column=0, **layout)
+        self._components['airpres'] = components.FloatEntry(frame, 'airpres',
+                                                            title=translator.get_readable('airpres').ljust(text_ljust),
+                                                            min_value=options.get('airpres').get('min'),
+                                                            max_value=options.get('airpres').get('max'), row=4,
+                                                            column=0, **layout)
+
+        self._components['airtemp'] = components.FloatEntry(frame, 'airtemp',
+                                                            title=translator.get_readable('airtemp').ljust(text_ljust),
+                                                            min_value=options.get('airtemp').get('min'),
+                                                            max_value=options.get('airtemp').get('max'),
+                                                            row=5, column=0, **layout)
+        self._components['weath'] = components.LabelDropdownList(frame, 'weath', title=translator.get_readable('weath').ljust(text_ljust), row=6, column=0, **layout)
+        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=7, column=0, **layout)
+        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=8, column=0, **layout)
+        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=9, column=0, **layout)
+        self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=10, column=0, **layout)
+
+        # Försystem: ändra ordning i högerkolumnen till: bottendjup – vind hast – riktning – lufttryck – temp. Så stämmer det med ordnignen på protokollet
+
+        tkw.grid_configure(frame, nr_rows=11)
 
         # Store selection
         to_store = ['windir', 'winsp', 'airtemp', 'airpres', 'weath', 'cloud', 'waves', 'iceob']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
+
+    def _on_close_seasave(self, *args):
+        self._components['wadep_bot'].set('')
+        self._components['wadep'].set('')
+        self._components['comnt_visit'].set('')
+
+    def _on_set_water_depth(self, depth):
+        self._components['wadep_bot'].set(depth)
 
     def _initiate_frame(self):
         self._components['windir'].values = [str(i).zfill(2) for i in range(37)] + ['99']
@@ -756,7 +818,7 @@ class ProcessingFrame(tk.Frame, SaveSelection):
 
 class FrameSelectInstrument(tk.Frame, SaveSelection):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, **kwargs):
         super().__init__(parent)
 
         self.controller = controller
@@ -1285,12 +1347,13 @@ class FrameStartUp(tk.Frame, SaveSelection):
 
 class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, **kwargs):
         super().__init__(parent)
 
         self.__instrument = ''
 
         self.controller = controller
+        self.main_app = kwargs.pop('main_app', None)
 
         self._build_frame()
 
@@ -1322,7 +1385,10 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
         ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, sticky='ew')
 
-        self.content_frame = StationPreSystemFrame(frame, controller=self.controller, row=2, column=0, **layout)
+        self.content_frame = StationPreSystemFrame(frame,
+                                                   controller=self.controller,
+                                                   main_app=self.main_app,
+                                                   row=2, column=0, **layout)
 
         ttk.Separator(frame, orient='horizontal').grid(row=3, column=0, sticky='ew')
 
@@ -1368,12 +1434,13 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
 class FrameManageCTDcastsTransect(tk.Frame):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, **kwargs):
         super().__init__(parent)
 
         self.__instrument = ''
 
         self.controller = controller
+        self.main_app = kwargs.pop('main_app', None)
 
         self._build_frame()
 

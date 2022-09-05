@@ -399,6 +399,59 @@ class LabelEntry(tk.Frame, Common):
         self.value = item
 
 
+class LabelLabel(tk.Frame, Common):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 title='labellabel',
+                 state='normal',
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self._id = id
+        self.title = title
+        self.state = state
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._create_frame()
+
+    def _create_frame(self):
+        layout = dict(padx=5,
+                      pady=5,
+                      sticky='nsew')
+        self.monospace_label = MonospaceLabel(self, text=self.title)
+        self.monospace_label.grid(column=0, **layout)
+
+        self._stringvar = tk.StringVar()
+
+        self._label = tk.Label(self, textvariable=self._stringvar)
+        self._label.grid(row=0, column=1, **layout)
+        self._label.configure(state=self.state)
+
+        tkw.grid_configure(self, nr_columns=3)
+
+    @property
+    def value(self):
+        return self._stringvar.get()
+
+    @value.setter
+    def value(self, value):
+        self._stringvar.set(str(value))
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
+
+
 class LabelDoubleEntry(tk.Frame, Common):
 
     def __init__(self,
@@ -658,6 +711,7 @@ class DepthEntry(tk.Frame, Common):
         self._stringvar_bottom_depth.set(string)
         plot_depth = self._get_plot_depth(float(depth))
         self.value = plot_depth
+        post_event('set_water_depth', depth)
 
     @property
     def value(self):
@@ -1174,6 +1228,12 @@ class SeriesEntryPicker(tk.Frame, Common):
 
     def set(self, item):
         self.value = item
+
+    def increase(self):
+        self._on_button_up()
+
+    def decrease(self):
+        self._on_button_down()
 
 
 class SurfaceSoakSelector(tk.Frame, Common):

@@ -21,6 +21,7 @@ class Translator:
              'alabo':   'Analyserande laboratorium',
              'refsk':   'Provtagningsmetod referens',
 
+             'wadep_bot': 'Bottendjupet ska vara [m]',
              'wadep': 'Ekolodsdjup vid station [m]',
              'windir': 'Vindriktning',
              'winsp': 'Vindhastighet [m/s]',

@@ -33,7 +33,11 @@ class EventTypes:
                 'add_components',
                 'update_components',
                 'toggle_tail',
-                'update_server_info'
+                'update_server_info',
+                'set_water_depth',
+                'close_seasave',
+                'button_goto_processing_simple',
+                'button_goto_processing_advanced'
             ]
         for item in self.event_types:
             setattr(self, item, item)
