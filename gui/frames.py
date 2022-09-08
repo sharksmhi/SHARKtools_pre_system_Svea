@@ -1041,13 +1041,13 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
-        data_local = tk.Label(self, text='Sparar filer till mapp:')
+        data_local = tk.Label(self, text='Sparar råfiler till mapp:')
         data_local.grid(row=r, column=0, sticky='w', **layout)
         data_local.bind('<Control-Button-1>', self._on_click_data_local)
         tk.Label(self, textvariable=self._stringvar_data_path_local).grid(row=r, column=1, sticky='w', **layout)
 
         r += 1
-        root_data_server = tk.Label(self, text='Rotkatalog för data på server:')
+        root_data_server = tk.Label(self, text='Spara processerad data på server:')
         root_data_server.grid(row=r, column=0, sticky='w', **layout)
         root_data_server.bind('<Control-Button-1>', self._on_click_root_data_server)
         tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
