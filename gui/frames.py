@@ -98,7 +98,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('confirm_sensors', self._set_instrument)
         subscribe('confirm_sensors', self._set_next_series)
         subscribe('focus_out_cruise', self._set_next_series)
-        # subscribe('focus_out_series', self._on_focus_out_series)
         subscribe('select_station', self._on_select_station)
         subscribe('focus_out_station', self._on_select_station)
         subscribe('return_position', self._on_return_position)
@@ -244,19 +243,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                                     ship=ship_code)
         self._components['series'].set(next_serno)
         post_event('set_next_series', next_serno)
-
-    # def _on_focus_out_series(self, serno):
-    #     cruise, year = self._components['cruise'].get()
-    #     ship_name, ship_code = self._components['vessel'].get()
-    #     series = self.controller.series_exists(server=True,
-    #                                             cruise=cruise,
-    #                                             year=year,
-    #                                             ship=ship_code,
-    #                                             serno=serno,
-    #                                             return_file_name=True)
-    #
-    #     if series:
-    #         messagebox.showwarning(f'Series already exists', f'{series}')
 
     def _on_select_station(self, station_name, *args, **kwargs):
         # station_name = self._components['station'].value
