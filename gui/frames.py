@@ -97,7 +97,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('confirm_sensors', self._set_instrument)
         subscribe('confirm_sensors', self._set_next_series)
-        subscribe('focus_out_cruise', self._set_next_series)
+        # subscribe('focus_out_cruise', self._set_next_series)
         subscribe('select_station', self._on_select_station)
         subscribe('focus_out_station', self._on_select_station)
         subscribe('return_position', self._on_return_position)
@@ -105,6 +105,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         subscribe('button_svepa', self._on_return_load_svepa)
         subscribe('button_seasave', self._on_return_seasave)
+
         subscribe('button_goto_processing_simple', self._on_return_goto_processing_simple)
         subscribe('button_goto_processing_advanced', self._on_return_goto_processing_advanced)
 
@@ -121,7 +122,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.instrument = instrument
 
     def _add_components(self, components):
-        print('components', components)
         self._components.update(components)
 
     def _build_frame(self):
@@ -388,7 +388,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
         meta_cond = {key.upper(): value for key, value in metadata_conditions.items()}
-        self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond)
+        self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond, source_dir=True, check_serno=True)
 
     def _on_return_seasave(self, *args):
         post_event('update_components', None)
@@ -432,7 +432,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['station'].set('')
         self._components['depth'].set('')
         self._components['depth'].water_depth = ''
-        self._components['series'].increase()
+        # self._components['series'].increase()
 
     def _program_is_running(self, program):
         for p in psutil.process_iter():
