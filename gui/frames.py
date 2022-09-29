@@ -7,6 +7,7 @@ import traceback
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+import logging
 
 import psutil
 from ctd_processing.options import get_options
@@ -21,6 +22,8 @@ from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
+
+logger = logging.getLogger(__file__)
 
 TEXT_LJUST = 10
 
@@ -1062,7 +1065,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         tkw.grid_configure(self, nr_columns=2, nr_rows=r+1)
 
     def _on_click_root_config(self, event=None):
-        directory = filedialog.askdirectory()
+        directory = filedialog.askdirectory(title='Rotkatalog för configfiler')
         if not directory:
             return
         ok = self._set_config_root_directory(directory)
@@ -1074,7 +1077,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         post_event('change_config_path', ok)
 
     def _on_click_data_local(self, event=None):
-        directory = filedialog.askdirectory()
+        directory = filedialog.askdirectory(title='Rotkatalog för lokal data')
         if not directory:
             return
         # Add year folder if not present
@@ -1093,7 +1096,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
 
     def _on_click_root_data_server(self, event=None):
         print(1)
-        directory = filedialog.askdirectory()
+        directory = filedialog.askdirectory(title='Rotkatalog för data på servern')
         if not directory:
             return
         print(2)
@@ -1126,7 +1129,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         self._stringvar_seasave_psa.set(self.controller.get_seasave_psa_path())
 
     def _set_config_root_directory(self, directory=None):
-        print('directory', directory)
+        logger.info(f'{directory=}')
         if not directory:
             directory = self._stringvar_config_root_path.get()
         try:
