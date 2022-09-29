@@ -77,20 +77,7 @@ def subscribe(event_type, func, before=False, after=False):
 
 
 def post_event(event_type, data, **kwargs):
-    if event_type == 'add_components':
-        print()
-        print('=' * 40)
     for sub in [subscribers_before, subscribers, subscribers_after]:
-        if event_type == 'add_components':
-            print()
-            print('='*40)
-            print('='*40)
-            print('='*40)
-            print(event_type)
-            print(sub)
-            print('-' * 40)
-            print('-' * 40)
-            print('-' * 40)
         if event_type not in sub:
             continue
         for func in sub[event_type]:
