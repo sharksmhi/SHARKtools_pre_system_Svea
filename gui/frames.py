@@ -364,6 +364,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         metadata_admin = self._frame_metadata_admin.get_data()
         metadata_conditions = self._frame_metadata_conditions.get_data()
+        metadata_conditions.pop('wadep_bot', None)
 
         missing = []
         for key in ['depth', 'bin_size', 'cruise', 'vessel', 'series', 'station', 'operator']:
@@ -1095,18 +1096,14 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         post_event('change_data_path_local', ok)
 
     def _on_click_root_data_server(self, event=None):
-        print(1)
         directory = filedialog.askdirectory(title='Rotkatalog för data på servern')
         if not directory:
             return
-        print(2)
         ok = self._set_data_root_directory_server(directory)
         if ok:
-            print(3)
             self.save_selection()
             self.update_info()
         else:
-            print(4)
             self.reset_info()
         post_event('change_data_path_server', ok)
 
