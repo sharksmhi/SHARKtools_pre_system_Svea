@@ -806,14 +806,21 @@ class FloatEntry(tk.Frame, Common):
         self._focus_next()
 
     def _on_change_entry(self, *args):
-        string = self._stringvar.get()
+        minus = False
+        string = self._stringvar.get().strip()
+        if string and string[0] == '-':
+            minus = True
+            string = string[1:]
         new_chars = []
         for s in string:
             if s.isdigit():
                 new_chars.append(s)
             elif s in ',.' and '.' not in new_chars:
                 new_chars.append('.')
-        self._stringvar.set(''.join(new_chars))
+        new_value = ''.join(new_chars)
+        if minus:
+            new_value = f'-{new_value}'
+        self._stringvar.set(new_value)
 
     @property
     def value(self):
