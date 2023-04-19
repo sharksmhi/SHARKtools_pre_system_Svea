@@ -1,1 +1,3 @@
 psutil
+
+git+https://github.com/sharksmhi/pre_system_svea.git@v0.1.0
