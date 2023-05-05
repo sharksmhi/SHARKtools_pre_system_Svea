@@ -1677,6 +1677,9 @@ class PositionEntries(tk.Frame, Common):
                  width=8,
                  **kwargs):
 
+        self._lat_text = kwargs.pop('lat_text', 'Lat')
+        self._lon_text = kwargs.pop('lon_text', 'Lon')
+        self._info_text = kwargs.pop('info_text', 'Position is:')
         self.grid_frame = {'padx': 5,
                            'pady': 5,
                            'sticky': 'nsew'}
@@ -1698,8 +1701,8 @@ class PositionEntries(tk.Frame, Common):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        MonospaceLabel(self, text='Lat').grid(row=0, column=0, **layout)
-        MonospaceLabel(self, text='Lon').grid(row=0, column=1, **layout)
+        MonospaceLabel(self, text=self._lat_text).grid(row=0, column=0, **layout)
+        MonospaceLabel(self, text=self._lon_text).grid(row=0, column=1, **layout)
 
         self._stringvar_lat = tk.StringVar()
         self._stringvar_lon = tk.StringVar()
@@ -1724,7 +1727,7 @@ class PositionEntries(tk.Frame, Common):
         
         source_frame = tk.Frame(self)
         source_frame.grid(row=2, column=0, columnspan=2, sticky='w')
-        tk.Label(source_frame, text='Position is:').grid(row=0, column=0, sticky='w')
+        tk.Label(source_frame, text=self._info_text).grid(row=0, column=0, sticky='w')
         self._stringvar_source = tk.StringVar()
         tk.Label(source_frame, textvariable=self._stringvar_source).grid(row=0, column=1, sticky='w')
         
@@ -1814,5 +1817,75 @@ class PositionEntries(tk.Frame, Common):
         self.lat = items[0]
         self.lon = items[1]
 
+
+class FilePathButtonText(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 title='FilePathButtonText',
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+
+        self._id = id
+        self.title = title
+        self._hard_press = kwargs.pop('hard_press', False)
+
+        self.grid_frame.update(kwargs)
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._create_frame()
+
+    def _create_frame(self):
+        self._stringvar = tk.StringVar()
+        self.button = tk.Button(self, text=self.title, command=self._on_button_click)
+        self.button.grid(column=0, row=0, padx=5, pady=5, sticky='nw')
+        tk.Label(self, textvariable=self._stringvar).grid(column=1, row=0, padx=5, pady=5, sticky='nw')
+        if self._hard_press:
+            self.button.bind('<Control-Button-1>', self._on_button_click_hard)
+
+    def _open_dialog(self):
+        path = filedialog.askopenfilename(title=self.title)
+        if not path:
+            return
+        path = Path(path)
+
+        self._stringvar.set(str(path))
+        post_event(f'change_{self._id}', path)
+
+    def _on_button_click(self):
+        if self._hard_press:
+            return
+        self._open_dialog()
+
+    def _on_button_click_hard(self, event):
+        self._open_dialog()
+
+    @property
+    def value(self):
+        string = self._stringvar.get()
+        if not string:
+            return False
+        return Path(string)
+
+    @value.setter
+    def value(self, item):
+        if not item:
+            self._stringvar.set('')
+        else:
+            self._stringvar.set(str(item))
+
+    def get(self):
+        return self.value
+
+    def set(self, path=None):
+        if not path:
+            return
+        path = Path(path)
+        self.value = path
 
 

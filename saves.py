@@ -100,6 +100,16 @@ class Saves:
             json.dump(self.data, fid, indent=4, sort_keys=True)
 
     def set(self, key, value):
+        if isinstance(value, pathlib.Path):
+            value = str(value)
+        elif isinstance(value, dict):
+            new_value = {}
+            for k, v in value.items():
+                if isinstance(v, pathlib.Path):
+                    v = str(v)
+                new_value[k] = v
+            value = new_value
+        print(f'{type(value)=}: {value=}')
         self.data[key] = value
         self._save()
 

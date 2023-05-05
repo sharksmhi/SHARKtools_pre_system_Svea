@@ -103,7 +103,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # subscribe('focus_out_cruise', self._set_next_series)
         subscribe('select_station', self._on_select_station)
         subscribe('focus_out_station', self._on_select_station)
-        subscribe('return_position', self._on_return_position)
+        # subscribe('return_position', self._on_return_position)
         subscribe('focus_out_depth', self._on_focus_out_depth)
 
         subscribe('button_svepa', self._on_return_load_svepa)
@@ -166,31 +166,56 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._components['position'] = components.PositionEntries(frame_right, 'position', row=2, column=0, **layout)
+
+        pos_frame = tk.Frame(frame_right)
+        pos_frame.grid(row=2, column=0, **layout)
+        self._components['position'] = components.PositionEntries(pos_frame, 'position', row=0, column=0,
+                                                                  lat_text='Lat (nom)', lon_text='Lon (nom)',
+                                                                  info_text='', **layout)
+        ttk.Separator(pos_frame, orient='vertical').grid(row=0, column=1, sticky='ns')
+        self._components['svepa_position'] = components.PositionEntries(pos_frame, 'svepa_position', row=0, column=2,
+                                                                        lat_text='Svepa lat', lon_text='Svepa lon',
+                                                                        info_text='',
+                                                                        **layout)
+
         self._components['add_samp'] = components.AddSampInfo(frame_right, 'add_samp', row=3, column=0, **layout)
         self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',  title=translator.get_readable('event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
         self._components['parent_event_id'] = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get_readable('parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
 
-        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Ladda information från SVEPA', row=0, column=0, **layout)
-        self._components['svepa'].button.config(state='disabled')
-        self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
-        self._components['validate'].button.config(state='disabled')
-        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Starta Seasave', row=0, column=2, **layout)
+        self._components['svepa_credentials_path'] = components.FilePathButtonText(frame_bottom,
+                                                                                   'svepa_credentials_path',
+                                                                                   title='Sökväg till inloggningsuppgifter till Svepa',
+                                                                                   row=0, column=0,
+                                                                                   columnspan=4, **layout)
+        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Ladda information från '
+                                                                                           'SVEPA', row=1, column=0, **layout)
+
+        self._bool_load_svepa_automatic = tk.BooleanVar()
+        self._bool_load_svepa_automatic.set(True)
+        tk.Checkbutton(frame_bottom, text='Import SVEPA when selection station',
+                       variable=self._bool_load_svepa_automatic).grid(row=2, column=0, **layout)
+        # self._components['svepa'].button.config(state='disabled')
+        # self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
+        # self._components['validate'].button.config(state='disabled')
+
+        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Starta Seasave',
+                                                                row=1, column=1, **layout)
         self._components['seasave'].button.config(bg='#6691bd')
-        self._components['goto_processing_simple'] = components.CallbackButton(frame_bottom, 'goto_processing_simple', title='Gå till enkel processering', row=0,
-                                                                 column=3, **layout)
+        self._components['goto_processing_simple'] = components.CallbackButton(frame_bottom,
+                                                                               'goto_processing_simple', title='Gå till enkel processering', row=1,
+                                                                 column=2, **layout)
         self._components['goto_processing_advanced'] = components.CallbackButton(frame_bottom, 'goto_processing_advanced',
                                                                                title='Gå till avancerad processering',
-                                                                               row=0,
-                                                                               column=4, **layout)
-        self._components['validate'].button.config(state='disabled')
+                                                                               row=1,
+                                                                               column=3, **layout)
+        # self._components['validate'].button.config(state='disabled')
 
         tkw.grid_configure(frame_left, nr_rows=6)
         tkw.grid_configure(frame_right, nr_rows=4)
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Store selection
-        to_store = ['cruise', 'operator', 'vessel', 'bin_size']
+        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'svepa_credentials_path']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _temp(self, dummy):
@@ -258,13 +283,29 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['position'].lat = station_info.get('lat', '')
         self._components['position'].lon = station_info.get('lon', '')
         self._components['depth'].water_depth = str(station_info.get('depth'))
-        self._components['position'].source = 'Nominal'
+        # self._components['position'].source = 'Nominal'
         self._components['distance'].value = 0
-        self._components['event_id'].value = ''
-        self._components['parent_event_id'].value = ''
+        # self._components['event_id'].value = ''
+        # self._components['parent_event_id'].value = ''
         self._components['add_samp'].value = None
         self._on_focus_out_depth()
+        if self._bool_load_svepa_automatic.get():
+            self._on_return_load_svepa()
+        # self._calculate_distance_to_svepa_pos()
         self.save_selection()
+
+    def _calculate_distance_to_svepa_pos(self):
+        self._components['distance'].value = ''
+
+        station_name = self._components['station'].value
+        lat = self._components['svepa_position'].lat
+        lon = self._components['svepa_position'].lon
+        if not (lat and lon):
+            return
+        dist = self.controller.get_distance_to_station(lat, lon, station_name)
+        if dist is None:
+            return
+        self._components['distance'].value = dist
 
     def _on_return_position(self, position, *args):
         lat, lon = position
@@ -297,7 +338,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 self._components['depth'].water_depth = ''
                 self._components['distance'].value = ''
 
-        self._components['position'].source = 'Manual'
+        # self._components['position'].source = 'Manual'
         return True
 
     def _on_focus_out_depth(self, *args):
@@ -475,23 +516,30 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return False
 
     def _on_return_load_svepa(self, *args):
-        print('Loading SVEPA information')
         try:
-            data = self.controller.get_svepa_info()
-            if not data.get('ctd_station_started'):
-                messagebox.showwarning('Loading information from Svepa', 'No CTD event is running on Svepa!')
+            cred_path = self._components['svepa_credentials_path'].get()
+            if not cred_path:
+                messagebox.showerror('Load information from Svepa', 'Ingen inloggningsuppgifter till svepa angivna!')
+                return
+
+            data = self.controller.get_svepa_info(credentials_path=cred_path)
 
             self._components['series'].value = data.get('serno')
-            self._components['station'].value = data.get('station', '')
             self._components['cruise'].nr = data.get('cruise')
 
             lat = str(data.get('lat'))
             lon = str(data.get('lon'))
-            ok = self._on_return_position([lat, lon])
-            if ok:
-                self._components['position'].lat = lat
-                self._components['position'].lon = lon
-                self._components['position'].source = 'Svepa'
+            print(f'{lat=}')
+            print(f'{lon=}')
+            self._components['svepa_position'].lat = lat
+            self._components['svepa_position'].lon = lon
+
+            self._calculate_distance_to_svepa_pos()
+
+            # ok = self._on_return_position([lat, lon])
+            # if ok:
+            #
+            #     # self._components['position'].source = 'Svepa'
 
             self._set_event_id(data)
             self._set_parent_event_id(data)
@@ -502,8 +550,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             messagebox.showerror('Load information from Svepa', 'Could not connect to Svepa database!')
         except svepa_exceptions.SvepaEventTypeNotRunningError as e:
             messagebox.showerror('Load information from Svepa', f'Event type {e.event_type} not running!')
+        except svepa_exceptions.SeveralSvepaEventsRunningError as e:
+            messagebox.showerror('Load information from Svepa', f'Several events are running for event type: '
+                                                                f' {e.event_type}')
         except svepa_exceptions.SvepaException as e:
+            logger.critical(traceback.format_exc())
             messagebox.showerror('Load information from Svepa', traceback.format_exc())
+        except:
+            logger.critical(traceback.format_exc())
+            messagebox.showerror('Could not load information from Svepa', traceback.format_exc())
 
     def _set_event_id(self, data):
         self._components['event_id'].value = data.get('event_id', 'Ingen information från Svepa')
@@ -946,7 +1001,7 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
         super().save_selection()
 
 
-class DataFileInfoFrame(tk.Frame):
+class DataFileInfoFrame(tk.Frame, SaveSelection):
     """
     Frame to show information about existing and built data file.
     """
@@ -965,7 +1020,7 @@ class DataFileInfoFrame(tk.Frame):
         self._stringvar_current_file = tk.StringVar()
 
         r = 0
-        tk.Label(self, text='Senast fil på server:').grid(row=r, column=0, sticky='w', **layout)
+        tk.Label(self, text='Senaste kastet på servern:').grid(row=r, column=0, sticky='w', **layout)
         tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
 
         tk.Button(self, text='Uppdatera', command=lambda: post_event('update_server_info', None)).grid(row=r, column=2, sticky='w', **layout)
