@@ -524,13 +524,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
             data = self.controller.get_svepa_info(credentials_path=cred_path)
 
-            self._components['series'].value = data.get('serno')
-            self._components['cruise'].nr = data.get('cruise')
+            # self._components['series'].value = data.get('serno')
+            # self._components['cruise'].nr = data.get('cruise')
 
             lat = str(data.get('lat'))
             lon = str(data.get('lon'))
-            print(f'{lat=}')
-            print(f'{lon=}')
             self._components['svepa_position'].lat = lat
             self._components['svepa_position'].lon = lon
 

@@ -1818,7 +1818,7 @@ class PositionEntries(tk.Frame, Common):
         self.lon = items[1]
 
 
-class FilePathButtonText(tk.Frame):
+class FilePathButtonText(tk.Frame, Common):
 
     def __init__(self,
                  parent,
