@@ -191,7 +191,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                                                                            'SVEPA', row=1, column=0, **layout)
 
         self._bool_load_svepa_automatic = tk.BooleanVar()
-        self._bool_load_svepa_automatic.set(True)
+        self._bool_load_svepa_automatic.set(False)
         tk.Checkbutton(frame_bottom, text='Import SVEPA when selection station',
                        variable=self._bool_load_svepa_automatic).grid(row=2, column=0, **layout)
         # self._components['svepa'].button.config(state='disabled')
@@ -524,11 +524,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
             data = self.controller.get_svepa_info(credentials_path=cred_path)
 
-            # self._components['series'].value = data.get('serno')
-            # self._components['cruise'].nr = data.get('cruise')
+            self._components['series'].value = data['parent_event_info'].get('counter', '')
+            self._components['cruise'].nr = data['trip_info'].get('counter', '')
 
-            lat = str(data.get('lat'))
-            lon = str(data.get('lon'))
+            lat = str(data.get('lat', ''))
+            lon = str(data.get('lon', ''))
             self._components['svepa_position'].lat = lat
             self._components['svepa_position'].lon = lon
 
