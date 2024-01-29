@@ -910,7 +910,7 @@ class IntEntry(tk.Frame, Common):
 
     @value.setter
     def value(self, value):
-        if not value and value is not 0:
+        if not value and value != 0:
             self._stringvar.set('')
             return
         self._stringvar.set(str(value))
