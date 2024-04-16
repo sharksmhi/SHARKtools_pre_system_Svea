@@ -12,7 +12,7 @@ from ..events import post_event
 from ..events import subscribe
 from .. import saves
 
-import sharkpylib.tklib.tkinter_widgets as tkw
+import shark_tkinter_lib.tkinter_widgets as tkw
 
 
 class AutocompleteCombobox(ttk.Combobox):
@@ -719,7 +719,7 @@ class DepthEntry(tk.Frame, Common):
 
     @value.setter
     def value(self, value):
-        if not value and value is not 0:
+        if not value and value != 0:
             self._stringvar.set('')
             return
         self._stringvar.set(str(value))
@@ -828,7 +828,7 @@ class FloatEntry(tk.Frame, Common):
 
     @value.setter
     def value(self, value):
-        if not value and value is not 0:
+        if not value and value != 0:
             self._stringvar.set('')
             return
         self._stringvar.set(str(value))

@@ -5,15 +5,15 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import tkinter as tk
-from sharkpylib.tklib import tkinter_widgets as tkw
+import shark_tkinter_lib.tkinter_widgets as tkw
 
 from . import frames
 
 
-from pre_system_svea.controller import Controller
+from ctd_pre_system.controller import Controller
 from file_explorer.seabird.paths import SBEPaths
 
-from ..events import subscribe
+from sharktools_ctd_pre_system.events import subscribe
 
 
 class PageStart(tk.Frame):

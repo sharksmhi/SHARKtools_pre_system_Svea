@@ -10,8 +10,8 @@ from tkinter import ttk
 import logging
 
 import psutil
-from ctd_processing.options import get_options
-from sharkpylib.tklib import tkinter_widgets as tkw
+from ..options import get_options
+from shark_tkinter_lib import tkinter_widgets as tkw
 from svepa import exceptions as svepa_exceptions
 
 from . import components
@@ -1205,6 +1205,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         #     return False
         try:
             self.controller.ctd_data_directory = directory
+            print(f'{self.controller.ctd_data_directory=}')
             self._stringvar_data_path_local.set(self.controller.ctd_data_directory or '')
         except:
             messagebox.showerror('Sätt lokal data',
