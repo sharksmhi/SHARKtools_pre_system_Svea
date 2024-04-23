@@ -76,7 +76,8 @@ class Defaults:
 class Saves:
 
     def __init__(self):
-        self.file_path = pathlib.Path(pathlib.Path(__file__).parent, 'saves.json')
+        self.file_path = pathlib.Path.home() / 'sharktools' / 'sharktools_ctd_prosessing_saves.json'
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.data = {}
 
