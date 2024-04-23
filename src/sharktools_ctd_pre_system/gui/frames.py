@@ -12,7 +12,6 @@ import logging
 import psutil
 from ..options import get_options
 from shark_tkinter_lib import tkinter_widgets as tkw
-from svepa import exceptions as svepa_exceptions
 
 from . import components
 from .. import lists
@@ -22,6 +21,12 @@ from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
+
+svepa_exceptions = None
+try:
+    from svepa import exceptions as svepa_exceptions
+except ImportError:
+    pass
 
 logger = logging.getLogger(__file__)
 
@@ -516,6 +521,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return False
 
     def _on_return_load_svepa(self, *args):
+        if not svepa_exceptions:
+            messagebox.showerror('Load information from Svepa', 'Pythonpaket som hanterar svepa är inte installerat!')
+            return
         try:
             cred_path = self._components['svepa_credentials_path'].get()
             if not cred_path:
