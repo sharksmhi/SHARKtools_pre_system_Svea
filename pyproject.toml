@@ -9,7 +9,6 @@ dependencies = [
     "psutil>=5.9.8",
     "pyyaml>=6.0.1",
     "ctd-pre-system @ git+https://github.com/sharksmhi/pre_system_svea.git",
-    "shark-tkinter-lib @ git+https://github.com/sharksmhi/shark_tkinter_lib.git",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
