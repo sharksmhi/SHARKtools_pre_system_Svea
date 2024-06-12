@@ -1247,9 +1247,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
     def data_root_path_local(self):
         return self._stringvar_data_path_local.get()
 
-    @data_root_path_local.setter
-    def data_root_path_local(self, path):
-        self._stringvar_data_path_local.set(str(path))
+    # @data_root_path_local.setter
+    # def data_root_path_local(self, path):
+    #     self._stringvar_data_path_local.set(str(path))
 
     @property
     def data_root_path_server(self):
