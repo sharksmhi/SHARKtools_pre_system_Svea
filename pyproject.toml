@@ -1,0 +1,35 @@
+[project]
+name = "sharktools_ctd_pre_system"
+version = "1.0.0"
+description = "SHARKtools plugin to add metadata before running seabird"
+authors = [
+    {name = "Magnus Wenzer", email = "nodc@smhi.se"},
+]
+dependencies = [
+    "ctd-pre-system @ git+https://github.com/sharksmhi/pre_system_svea.git@v1.0.0",
+    "SHARKtools @ git+https://github.com/sharksmhi/SHARKtools.git@v1.0.0",
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[project.entry-points.'sharktools.plugins']
+ctd_pre_system = 'sharktools_ctd_pre_system'
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mypkg = ["."]
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+]

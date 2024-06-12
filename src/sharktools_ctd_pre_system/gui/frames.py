@@ -10,9 +10,8 @@ from tkinter import ttk
 import logging
 
 import psutil
-from ctd_processing.options import get_options
-from sharkpylib.tklib import tkinter_widgets as tkw
-from svepa import exceptions as svepa_exceptions
+from ..options import get_options
+from shark_tkinter_lib import tkinter_widgets as tkw
 
 from . import components
 from .. import lists
@@ -22,6 +21,12 @@ from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
+
+svepa_exceptions = None
+try:
+    from svepa import exceptions as svepa_exceptions
+except ImportError:
+    pass
 
 logger = logging.getLogger(__file__)
 
@@ -516,6 +521,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return False
 
     def _on_return_load_svepa(self, *args):
+        if not svepa_exceptions:
+            messagebox.showerror('Load information from Svepa', 'Pythonpaket som hanterar svepa är inte installerat!')
+            return
         try:
             cred_path = self._components['svepa_credentials_path'].get()
             if not cred_path:
@@ -1205,6 +1213,7 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         #     return False
         try:
             self.controller.ctd_data_directory = directory
+            print(f'{self.controller.ctd_data_directory=}')
             self._stringvar_data_path_local.set(self.controller.ctd_data_directory or '')
         except:
             messagebox.showerror('Sätt lokal data',
@@ -1238,9 +1247,9 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
     def data_root_path_local(self):
         return self._stringvar_data_path_local.get()
 
-    @data_root_path_local.setter
-    def data_root_path_local(self, path):
-        self._stringvar_data_path_local.set(str(path))
+    # @data_root_path_local.setter
+    # def data_root_path_local(self, path):
+    #     self._stringvar_data_path_local.set(str(path))
 
     @property
     def data_root_path_server(self):

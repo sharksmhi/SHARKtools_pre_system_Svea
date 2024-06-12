@@ -1,18 +1,12 @@
-# Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute 
-# License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
-
-# To use basemap you might need to install Microsoft Visual C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
 
 import os
 import tkinter as tk
 
-import sharkpylib.tklib.tkinter_widgets as tkw
+import shark_tkinter_lib.tkinter_widgets as tkw
 
-import core
-from . import gui
-from .events import subscribe
-from plugins.plugin_app import PluginApp
+from sharktools import core
+from sharktools_ctd_pre_system import gui
+from sharktools.plugin import PluginApp
 
 ALL_PAGES = dict()
 ALL_PAGES['PageStart'] = gui.PageStart
