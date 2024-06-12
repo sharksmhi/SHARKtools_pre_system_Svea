@@ -6,9 +6,8 @@ authors = [
     {name = "Magnus Wenzer", email = "nodc@smhi.se"},
 ]
 dependencies = [
-    "psutil>=5.9.8",
-    "pyyaml>=6.0.1",
-    "ctd-pre-system @ git+https://github.com/sharksmhi/pre_system_svea.git",
+    "ctd-pre-system @ git+https://github.com/sharksmhi/pre_system_svea.git@v1.0.0",
+    "SHARKtools @ git+https://github.com/sharksmhi/SHARKtools.git@v1.0.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
