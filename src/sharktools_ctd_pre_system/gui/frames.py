@@ -279,12 +279,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _on_select_station(self, station_name, *args, **kwargs):
         # station_name = self._components['station'].value
+        station_name = station_name.replace(',', '.')
+        print(f'{station_name=}')
         station_info = self.controller.get_station_info(station_name)
         if not station_info:
             self._components['depth'].water_depth = ''
             self._components['distance'].value = ''
             return
-        self._components['station'].value = station_info.get('station') # Could have been a synonym
+        self._components['station'].value = station_info.get('station')  # Could have been a synonym
         self._components['position'].lat = station_info.get('lat', '')
         self._components['position'].lon = station_info.get('lon', '')
         self._components['depth'].water_depth = str(station_info.get('depth'))
@@ -441,6 +443,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond, source_dir=True, check_serno=True)
 
     def _on_return_seasave(self, *args):
+        self._components['station'].value = self._components['station'].value.replace(',', '.')
+        self._components['station'].update()
         post_event('update_components', None)
         if self._components['tail'].value:
             ans = messagebox.askyesno('Skapar testfil', 'Vill du skapa en testfil?')
