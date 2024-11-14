@@ -149,11 +149,20 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         ttk.Separator(frame, orient='vertical').grid(row=0, column=3, sticky='ns')
 
-        self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
+        frame_metadata = tk.Frame(frame)
+        frame_metadata.grid(row=0, column=4, sticky='ns')
+
+        self._frame_metadata_admin = MetadataAdminFrame(frame_metadata, self.controller, row=0, column=0, sticky='ns')
+        ttk.Separator(frame_metadata, orient='horizontal').grid(row=1, column=0, sticky='ew')
+        self._frame_metadata_conditions = MetadataConditionsFrame(frame_metadata, self.controller, row=2, column=0, sticky='ns')
+
+        # self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
 
         ttk.Separator(frame, orient='vertical').grid(row=0, column=5, sticky='ns')
 
-        self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
+        # self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
+
+        self._frame_auto_fire_table = FrameAutoFireTable(frame, self.controller, row=0, column=6)
 
         frame_bottom = tk.Frame(frame)
         frame_bottom.grid(row=1, column=0, columnspan=7)
@@ -1525,6 +1534,131 @@ class FrameManageCTDcastsTransect(tk.Frame):
     def instrument(self, name):
         self.__instrument = name
         self._update_frame()
+
+
+class FrameAutoFireTable(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 controller=None,
+                 **kwargs):
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+
+        self.controller = controller
+        self.instrument = None
+
+        self.grid(**self.grid_frame)
+
+        self._build_frame()
+
+    def _build_frame(self):
+
+        nr_btl_frame = tk.Frame(self)
+        nr_btl_frame.grid(row=0, column=0, sticky='nw')
+
+        self._table_frame = None
+
+        tkw.grid_configure(self)
+        tkw.grid_configure(nr_btl_frame)
+
+        self._stringvar_nr_btl = tk.StringVar()
+
+        tk.Radiobutton(nr_btl_frame, text='12 flaskor', variable=self._stringvar_nr_btl, value='12', command=self._on_change_nr_btl).grid(row=0, column=0)
+        tk.Radiobutton(nr_btl_frame, text='24 flaskor', variable=self._stringvar_nr_btl, value='24', command=self._on_change_nr_btl).grid(row=0, column=1)
+
+        self._stringvar_nr_btl.set('24')
+
+        self._set_table_frame_layout()
+
+    def _set_table_frame_layout(self):
+        if self._table_frame:
+            self._table_frame.destroy()
+
+        self._table_frame = tk.Frame(self)
+        self._table_frame.grid(row=1, column=0, sticky='nw')
+        tkw.grid_configure(self._table_frame)
+
+        # self._canvas = tk.Canvas(self, width=400, height=300, borderwidth=0, highlightthickness=0,
+        #                    bg="white",
+        #                          )
+        # create_circle(200, 20, 20, self._canvas, text='1', fill='red')
+        # create_circle(20, 150, 20, self._canvas, text='2', fill='red')
+        # create_circle(380, 150, 20, self._canvas, text='3', fill='red')
+        # create_circle(200, 280, 20, self._canvas, text='4', fill='red')
+        #
+        # self._canvas.grid(row=2, column=0, sticky='nw')
+        # tkw.grid_configure(self._canvas)
+
+        tk.Label(self._table_frame, text='Djup').grid(row=0, column=0)
+        tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=1)
+
+        layout = dict(padx=3, pady=0, sticky='nwse')
+
+        self._table_widgets = []
+
+        nr_btl = int(self._stringvar_nr_btl.get())
+
+        c = 0
+        r = 0
+        for i in range(24):
+            state = 'readonly'
+            # value = str(i+1)
+            # if i > nr_btl:
+            #     state = 'disabled'
+            #     value = ''
+            depth = components.DropdownList(self._table_frame, 'auto_fire_depth', state=state, row=r+1, column=c, **layout)
+            bottle = components.DropdownList(self._table_frame, 'auto_fire_bottle', state=state, row=r+1, column=c+1, **layout)
+            bottle.values = [str(i) for i in range(1, nr_btl+1)]
+            # bottle.value = value
+
+            row_widgets = dict(
+                depth=depth,
+                bottle=bottle
+            )
+            self._table_widgets.append(row_widgets)
+            r += 1
+            if i == 11:
+                ttk.Separator(self._table_frame, orient='vertical').grid(row=0, column=2, sticky='ns', rowspan=13)
+                c = 3
+                r = 0
+                tk.Label(self._table_frame, text='Djup').grid(row=0, column=c)
+                tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=c+1)
+
+    def _update_table_frame_layout(self):
+        self._clear_table_frame_layout()
+        nr_btl = int(self._stringvar_nr_btl.get())
+        for i in range(nr_btl):
+            row_widgets = self._table_widgets[i]
+            row_widgets['depth'].set_state('readonly')
+            row_widgets['bottle'].set_state('readonly')
+            row_widgets['bottle'].values = [str(i) for i in range(1, nr_btl + 1)]
+
+    def _clear_table_frame_layout(self):
+        for row_widgets in self._table_widgets:
+            row_widgets['depth'].set_state('disabled')
+            row_widgets['depth'].value = ''
+            row_widgets['bottle'].set_state('disabled')
+            row_widgets['bottle'].value = ''
+
+    def _on_change_nr_btl(self):
+        self._update_table_frame_layout()
+
+
+def create_circle(x, y, r, canvas, text='', **kwargs): #center coordinates, radius
+    x0 = x - r
+    y0 = y - r
+    x1 = x + r
+    y1 = y + r
+    oval = canvas.create_oval(x0, y0, x1, y1, **kwargs)
+    if text:
+        canvas_id = canvas.create_text(x, y, anchor="center")
+        # canvas.itemconfig(canvas_id, text=text)
+        canvas.insert(canvas_id, 24, text)
 
 
 def get_transect_list():
