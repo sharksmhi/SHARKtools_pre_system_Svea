@@ -21,6 +21,7 @@ from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
+from ctd_pre_system import exceptions as pre_system_exceptions
 
 svepa_exceptions = None
 try:
@@ -445,6 +446,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         if data.get('tail'):
             data['tail'] = 'test'
+
+        try:
+            auto_fire_data = self._frame_auto_fire_table.get_data()
+            self.controller.check_valid_auto_fire_data(auto_fire_data)
+        except pre_system_exceptions.CtdPreSystemError as e:
+            messagebox.showerror('Problem med AutoFire', str(e))
+            return
+
 
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
@@ -1618,7 +1627,7 @@ class FrameAutoFireTable(tk.Frame):
 
             row_widgets = dict(
                 depth=depth,
-                bottle=bottle
+                BottleNumber=bottle
             )
             self._table_widgets.append(row_widgets)
             r += 1
@@ -1635,18 +1644,31 @@ class FrameAutoFireTable(tk.Frame):
         for i in range(nr_btl):
             row_widgets = self._table_widgets[i]
             row_widgets['depth'].set_state('readonly')
-            row_widgets['bottle'].set_state('readonly')
-            row_widgets['bottle'].values = [str(i) for i in range(1, nr_btl + 1)]
+            row_widgets['BottleNumber'].set_state('readonly')
+            row_widgets['BottleNumber'].values = [str(i) for i in range(1, nr_btl + 1)]
 
     def _clear_table_frame_layout(self):
         for row_widgets in self._table_widgets:
             row_widgets['depth'].set_state('disabled')
             row_widgets['depth'].value = ''
-            row_widgets['bottle'].set_state('disabled')
-            row_widgets['bottle'].value = ''
+            row_widgets['BottleNumber'].set_state('disabled')
+            row_widgets['BottleNumber'].value = ''
 
     def _on_change_nr_btl(self):
         self._update_table_frame_layout()
+
+    def get_data(self) -> list[dict[str, int]]:
+        data = []
+        for row_widgets in self._table_widgets:
+            depth = row_widgets['depth'].value
+            bottle = row_widgets['BottleNumber'].value
+            if not (depth and bottle):
+                continue
+            data.append(dict(
+                depth=depth,
+                BottleNumber=bottle,
+            ))
+        return data
 
 
 def create_circle(x, y, r, canvas, text='', **kwargs): #center coordinates, radius
