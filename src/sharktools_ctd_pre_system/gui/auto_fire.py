@@ -121,16 +121,22 @@ class FrameAutoFire(tk.Frame):
         self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
         self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
 
+    @property
+    def nr_bottles(self) -> int:
+        return int(self._stringvar_nr_btl.get())
+
     def _on_toggle_auto_fire(self, *args):
+        if not self.parent_frame.station:
+            return
         if self._intvar_use_auto_fire.get():
             self._on_change_station()
+            self.set_max_depth_to_autofire()
         else:
             self._disable()
 
     def _disable(self):
         self._clear_table_frame_layout()
         self._canvas.clear_canvas()
-
 
     def _set_canvas_layout(self, frame):
         self._canvas = FrameAutoFireCanvas(frame, self.controller, self, row=0, column=0)
@@ -150,7 +156,7 @@ class FrameAutoFire(tk.Frame):
 
         self._table_widgets = []
 
-        nr_btl = int(self._stringvar_nr_btl.get())
+        nr_btl = self.nr_bottles
 
         c = 0
         r = 0
@@ -180,19 +186,26 @@ class FrameAutoFire(tk.Frame):
 
     def _update_table_frame_layout(self):
         self._clear_table_frame_layout()
-        nr_btl = int(self._stringvar_nr_btl.get())
+        nr_btl = self.nr_bottles
         for i in range(nr_btl):
             row_widgets = self._table_widgets[i]
             row_widgets['depth'].set_state('readonly')
             row_widgets['BottleNumber'].set_state('readonly')
-            print(i, row_widgets['depth'].state)
 
     def _clear_table_frame_layout(self):
+        bottle_list = [''] + [str(i) for i in range(1, self.nr_bottles+1)]
+        depth_list = [''] + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(self.parent_frame.station))]
+
         for row_widgets in self._table_widgets:
             row_widgets['depth'].set_state('readonly')
             row_widgets['BottleNumber'].set_state('readonly')
+
             row_widgets['depth'].value = ''
             row_widgets['BottleNumber'].value = ''
+
+            row_widgets['depth'].values = depth_list[:]
+            row_widgets['BottleNumber'].values = bottle_list[:]
+
             row_widgets['depth'].set_state('disabled')
             row_widgets['BottleNumber'].set_state('disabled')
 
@@ -208,19 +221,16 @@ class FrameAutoFire(tk.Frame):
         self._update_table_with_default_data()
 
     def _update_canvas_layout(self):
-        self._canvas.update_layout(self.get_data())
+        self._canvas.update_layout(self.get_data(), nr_bottles=self.nr_bottles)
 
     def _update_table_with_default_data(self, nr_active_bottles: int = None):
         station = self.parent_frame.station
         if not station:
             return
-        depth_list = [''] + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(station))]
-        info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles)
-        # for row_widgets, row_info in zip(self._table_widgets, info):
+        info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles)
         for i, row_widgets in enumerate(self._table_widgets):
             if row_widgets['depth'].state == 'disabled':
                 break
-            row_widgets['depth'].values = depth_list
             try:
                 row_info = info[i]
                 row_widgets['depth'].value = row_info['depth']
@@ -248,7 +258,6 @@ class FrameAutoFire(tk.Frame):
             depth = self._max_depth
         if not depth:
             return
-        #self._on_change_nr_btl(
         self._set_default_table_data()
         max_depth = int(depth)
         nr_active_bottles = 0
@@ -281,6 +290,10 @@ class FrameAutoFire(tk.Frame):
                 BottleNumber=bottle,
             ))
         return data
+
+    @property
+    def enable_auto_fire(self) -> bool:
+        return bool(self._intvar_use_auto_fire.get())
 
 
 class FrameAutoFireCanvas(tk.Frame):
@@ -336,18 +349,12 @@ class FrameAutoFireCanvas(tk.Frame):
 
     def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
         self.clear_canvas()
-        print()
-        print('*'*100)
-        for data in table_data:
-            print(f'{data=}')
 
         unique_depths = sorted([int(item['depth']) for item in table_data], reverse=True)
         colors = get_colors(len(unique_depths))
         depth_color_mapping = dict(zip(unique_depths, colors))
 
         index_mapping = {int(item['BottleNumber']): item for item in table_data}
-        colors = get_colors(len(table_data))
-        print(colors)
         color_index = 0
         text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
         for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius)):
