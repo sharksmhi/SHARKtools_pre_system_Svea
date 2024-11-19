@@ -1,5 +1,6 @@
 import collections
 import math
+import re
 import tkinter as tk
 from tkinter import ttk
 
@@ -98,16 +99,15 @@ class FrameAutoFire(tk.Frame):
         use_auto_fire = tk.Frame(self)
         use_auto_fire.grid(row=0, column=0, sticky='nw')
 
-        self._intvar_use_auto_fire = tk.IntVar()
-        self._intvar_use_auto_fire.set(True)
-        tk.Checkbutton(use_auto_fire, text='Använd Auto Fire', variable=self._intvar_use_auto_fire, command=self._on_toggle_auto_fire).grid()
-
         nr_btl_frame = tk.Frame(self)
         nr_btl_frame.grid(row=1, column=0, sticky='nw')
 
-        tkw.grid_configure(self)
-        tkw.grid_configure(use_auto_fire)
-        tkw.grid_configure(nr_btl_frame)
+        offset_frame = tk.Frame(self)
+        offset_frame.grid(row=2, column=0, sticky='nw')
+
+        self._intvar_use_auto_fire = tk.IntVar()
+        self._intvar_use_auto_fire.set(True)
+        tk.Checkbutton(use_auto_fire, text='Använd Auto Fire', variable=self._intvar_use_auto_fire, command=self._on_toggle_auto_fire).grid()
 
         self._stringvar_nr_btl = tk.StringVar()
 
@@ -116,14 +116,41 @@ class FrameAutoFire(tk.Frame):
 
         self._stringvar_nr_btl.set('24')
 
-        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=2, column=0)
+        self._stringvar_offset = tk.StringVar()
+        tk.Label(offset_frame, text='Offset').grid(row=0, column=0)
+        tk.Entry()
+        self._offset = tkw.EntryWidget(offset_frame, callback_on_change_value=self._on_change_offset, prop_entry=dict(width=10), row=0, column=1)
+        self._offset.set_value(0)
+
+        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=3, column=0)
 
         self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
         self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
 
+        tkw.grid_configure(self)
+        tkw.grid_configure(use_auto_fire)
+        tkw.grid_configure(nr_btl_frame)
+
     @property
     def nr_bottles(self) -> int:
         return int(self._stringvar_nr_btl.get())
+
+    @property
+    def offset(self) -> float:
+        value = self._offset.get_value().strip()
+        if not value:
+            return 0
+        return float(value)
+
+    def _on_change_offset(self, *args):
+        value = self._offset.get_value().strip().replace(',', '.')
+        new_value_list = []
+        for d in list(value):
+            if d.isdigit():
+                new_value_list.append(d)
+            elif d == '.' and '.' not in new_value_list:
+                new_value_list.append(d)
+        self._offset.set_value(''.join(new_value_list))
 
     def _on_toggle_auto_fire(self, *args):
         if not self.parent_frame.station:
@@ -288,6 +315,7 @@ class FrameAutoFire(tk.Frame):
             data.append(dict(
                 depth=depth,
                 BottleNumber=bottle,
+                offset=self.offset
             ))
         return data
 
