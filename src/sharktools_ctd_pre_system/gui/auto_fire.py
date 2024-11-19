@@ -320,7 +320,7 @@ class FrameAutoFireCanvas(tk.Frame):
     def clear_canvas(self):
         self.canvas.delete("all")
 
-    def _create_circle(self, x, y, r, text='', **kwargs):  # center coordinates, radius
+    def _add_circle(self, x, y, r, text='', **kwargs):  # center coordinates, radius
         x0 = x - r
         y0 = y - r
         x1 = x + r
@@ -330,17 +330,33 @@ class FrameAutoFireCanvas(tk.Frame):
             self.canvas.create_text(x, y, anchor="center")
             self.canvas.create_text(x, y, font=("Purisa", 24), text=text)
 
+    def _add_text(self, x, y, text='', text_size=12):  # center coordinates, radius
+        self.canvas.create_text(x, y, anchor="center")
+        self.canvas.create_text(x, y, font=("Purisa", text_size), text=text)
+
     def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
         self.clear_canvas()
-        print(f'{table_data=}')
+        print()
+        print('*'*100)
+        for data in table_data:
+            print(f'{data=}')
+
+        unique_depths = sorted([int(item['depth']) for item in table_data], reverse=True)
+        colors = get_colors(len(unique_depths))
+        depth_color_mapping = dict(zip(unique_depths, colors))
+
         index_mapping = {int(item['BottleNumber']): item for item in table_data}
         colors = get_colors(len(table_data))
         print(colors)
         color_index = 0
+        text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
         for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius)):
             data = index_mapping.get(i+1)
             if data:
-                self._create_circle(x, y, self._circle_size, text=str(i+1), fill=colors[color_index])
+                self._add_circle(x, y, self._circle_size, text=str(i+1), fill=depth_color_mapping[int(data['depth'])])
+                tx, ty = text_coordinates[i]
+                self._add_text(tx, ty, text=str(data['depth']))
+                # self._add_circle(x, y, self._circle_size, text=str(i+1), fill=colors[color_index])
                 color_index += 1
             else:
-                self._create_circle(x, y, self._circle_size, text=str(i+1))
+                self._add_circle(x, y, self._circle_size, text=str(i+1))
