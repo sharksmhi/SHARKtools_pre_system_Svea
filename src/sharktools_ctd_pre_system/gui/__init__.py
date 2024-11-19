@@ -5,5 +5,6 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 from .page_start import PageStart
+from . import auto_fire
 
 

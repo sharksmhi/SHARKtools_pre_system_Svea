@@ -375,6 +375,9 @@ class DropdownList(tk.Frame, Common):
         self.state = state
         self.combobox.config(state=state)
 
+    def set_bg_color(self, color: str):
+        self.combobox.config(background=color)
+
     @property
     def values(self):
         return self.combobox['values']

@@ -8,6 +8,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 import logging
+import collections
 
 import psutil
 from ..options import get_options
@@ -22,8 +23,10 @@ from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
 from ctd_pre_system import exceptions as pre_system_exceptions
+from sharktools_ctd_pre_system.gui import auto_fire
 
 svepa_exceptions = None
+
 try:
     from svepa import exceptions as svepa_exceptions
 except ImportError:
@@ -122,6 +125,10 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('input_ok', self._input_ok)
         subscribe('add_components', self._add_components)
 
+    @property
+    def station(self):
+        return self._components['station'].value
+
     def save_selection(self):
         self._frame_metadata_admin.save_selection()
         self._frame_metadata_conditions.save_selection()
@@ -163,7 +170,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         # self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
 
-        self._frame_auto_fire_table = FrameAutoFireTable(frame, self.controller, row=0, column=6)
+        #self._frame_auto_fire_table = FrameAutoFireTable(frame, self.controller, self, row=0, column=6)
+        self._frame_auto_fire_table = auto_fire.FrameAutoFire(frame, self.controller, self, row=0, column=6)
 
         frame_bottom = tk.Frame(frame)
         frame_bottom.grid(row=1, column=0, columnspan=7)
@@ -454,6 +462,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             messagebox.showerror('Problem med AutoFire', str(e))
             return
 
+        # Auto fire
+        auto_fire_data = self._frame_auto_fire_table.get_data()
+        print(f'{auto_fire_data=}')
+        print(f'{len(auto_fire_data)=}')
+        self.controller.set_auto_fire_bottles(auto_fire_data, self.station)
 
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
@@ -1550,6 +1563,7 @@ class FrameAutoFireTable(tk.Frame):
     def __init__(self,
                  parent,
                  controller=None,
+                 parent_frame= None,
                  **kwargs):
         self.grid_frame = {'padx': 5,
                            'pady': 5,
@@ -1559,11 +1573,16 @@ class FrameAutoFireTable(tk.Frame):
         super().__init__(parent)
 
         self.controller = controller
+        self.parent_frame = parent_frame
         self.instrument = None
 
         self.grid(**self.grid_frame)
 
         self._build_frame()
+
+        subscribe('select_station', self._on_change_nr_btl)
+        subscribe('focus_out_wadep', self.set_max_depth_to_autofire)
+        subscribe('select_auto_fire_bottle', self._validate_autofire_table)
 
     def _build_frame(self):
 
@@ -1582,29 +1601,38 @@ class FrameAutoFireTable(tk.Frame):
 
         self._stringvar_nr_btl.set('24')
 
-        self._set_table_frame_layout()
+        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=1, column=0)
 
-    def _set_table_frame_layout(self):
-        if self._table_frame:
-            self._table_frame.destroy()
+        self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
+        self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
 
-        self._table_frame = tk.Frame(self)
-        self._table_frame.grid(row=1, column=0, sticky='nw')
+    def _set_canvas_layout(self, frame):
+
+        self._canvas = tk.Canvas(frame, width=400, height=300, borderwidth=0, highlightthickness=0,
+                           bg="white",
+                                 )
+        create_circle(200, 20, 20, self._canvas, text='1', fill='red')
+        create_circle(20, 150, 20, self._canvas, text='2', fill='red')
+        create_circle(380, 150, 20, self._canvas, text='3', fill='red')
+        create_circle(200, 280, 20, self._canvas, text='4', fill='red')
+
+        self._canvas.grid(row=0, column=0, sticky='nw')
+        tkw.grid_configure(self._canvas)
+
+    def _set_table_frame_layout(self, frame):
+
+        self._table_frame = tk.Frame(frame)
+        self._table_frame.grid(row=0, column=0, sticky='nw')
         tkw.grid_configure(self._table_frame)
 
-        # self._canvas = tk.Canvas(self, width=400, height=300, borderwidth=0, highlightthickness=0,
-        #                    bg="white",
-        #                          )
-        # create_circle(200, 20, 20, self._canvas, text='1', fill='red')
-        # create_circle(20, 150, 20, self._canvas, text='2', fill='red')
-        # create_circle(380, 150, 20, self._canvas, text='3', fill='red')
-        # create_circle(200, 280, 20, self._canvas, text='4', fill='red')
-        #
-        # self._canvas.grid(row=2, column=0, sticky='nw')
-        # tkw.grid_configure(self._canvas)
+        label_row = tk.Frame(self._table_frame)
+        label_row.grid(row=0, column=0)
+        self.DEFAULT_FRAME_COLOR = label_row.cget('bg')
+        tk.Label(label_row, text='Djup / Flasknummer').grid(row=0, column=0)
+        #tk.Label(label_row, text='Flasknummer').grid(row=0, column=1)
 
-        tk.Label(self._table_frame, text='Djup').grid(row=0, column=0)
-        tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=1)
+        # tk.Label(self._table_frame, text='Djup').grid(row=0, column=0)
+        # tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=1)
 
         layout = dict(padx=3, pady=0, sticky='nwse')
 
@@ -1620,23 +1648,35 @@ class FrameAutoFireTable(tk.Frame):
             # if i > nr_btl:
             #     state = 'disabled'
             #     value = ''
-            depth = components.DropdownList(self._table_frame, 'auto_fire_depth', state=state, row=r+1, column=c, **layout)
-            bottle = components.DropdownList(self._table_frame, 'auto_fire_bottle', state=state, row=r+1, column=c+1, **layout)
+            row_frame = tk.Frame(self._table_frame)
+            row_frame.grid(row=r+1, column=c)
+            depth = components.DropdownList(row_frame, 'auto_fire_depth', state=state, row=0, column=0, **layout)
+            bottle = components.DropdownList(row_frame, 'auto_fire_bottle', state=state, row=0, column=1, **layout)
+
+            # depth = components.DropdownList(self._table_frame, 'auto_fire_depth', state=state, row=r + 1, column=c, **layout)
+            #bottle = components.DropdownList(self._table_frame, 'auto_fire_bottle', state=state, row=r + 1, column=c + 1, **layout)
             bottle.values = [str(i) for i in range(1, nr_btl+1)]
             # bottle.value = value
 
             row_widgets = dict(
                 depth=depth,
-                BottleNumber=bottle
+                BottleNumber=bottle,
+                row=row_frame
             )
             self._table_widgets.append(row_widgets)
             r += 1
             if i == 11:
                 ttk.Separator(self._table_frame, orient='vertical').grid(row=0, column=2, sticky='ns', rowspan=13)
-                c = 3
+                c = 1
                 r = 0
-                tk.Label(self._table_frame, text='Djup').grid(row=0, column=c)
-                tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=c+1)
+                label_row = tk.Frame(self._table_frame)
+                label_row.grid(row=0, column=c)
+                tk.Label(label_row, text='Djup / flasknummer').grid(row=0, column=0, sticky='w')
+                tkw.grid_configure(label_row)
+                #tk.Label(label_row, text='Flasknummer').grid(row=0, column=1, sticky='e')
+
+                #tk.Label(self._table_frame, text='Djup').grid(row=0, column=c)
+                #tk.Label(self._table_frame, text='Flasknummer').grid(row=0, column=c+1)
 
     def _update_table_frame_layout(self):
         self._clear_table_frame_layout()
@@ -1645,17 +1685,57 @@ class FrameAutoFireTable(tk.Frame):
             row_widgets = self._table_widgets[i]
             row_widgets['depth'].set_state('readonly')
             row_widgets['BottleNumber'].set_state('readonly')
-            row_widgets['BottleNumber'].values = [str(i) for i in range(1, nr_btl + 1)]
+            print(i, row_widgets['depth'].state)
 
     def _clear_table_frame_layout(self):
         for row_widgets in self._table_widgets:
-            row_widgets['depth'].set_state('disabled')
+            row_widgets['depth'].set_state('readonly')
+            row_widgets['BottleNumber'].set_state('readonly')
             row_widgets['depth'].value = ''
-            row_widgets['BottleNumber'].set_state('disabled')
             row_widgets['BottleNumber'].value = ''
+            row_widgets['depth'].set_state('disabled')
+            row_widgets['BottleNumber'].set_state('disabled')
+            print(row_widgets['depth'].state)
 
-    def _on_change_nr_btl(self):
+    def _on_change_nr_btl(self, *args):
         self._update_table_frame_layout()
+        self._update_table_with_default_data()
+
+    def _update_table_with_default_data(self):
+        station = self.parent_frame.station
+        if not station:
+            return
+        depth_list = [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(station))]
+        info = self.controller.get_auto_fire_info_for_station(station)
+        print(f'{len(info)=}')
+        for row_widgets, row_info in zip(self._table_widgets, info):
+            if row_widgets['depth'].state == 'disabled':
+                break
+            row_widgets['depth'].values = depth_list
+            row_widgets['depth'].value = row_info['depth']
+            row_widgets['BottleNumber'].value = row_info['BottleNumber']
+
+    def _validate_autofire_table(self, *args):
+        all_bottles = [row_widgets['BottleNumber'].value for row_widgets in self._table_widgets if row_widgets['BottleNumber'].value]
+        dublicates = [k for k, v in collections.Counter(all_bottles).items() if v > 1]
+        for row_widgets in self._table_widgets:
+            color = self.DEFAULT_FRAME_COLOR
+            if row_widgets['BottleNumber'].value in dublicates:
+                color = 'red'
+            row_widgets['row'].config(bg=color)
+
+    def set_max_depth_to_autofire(self, depth: str | int) -> None:
+        self._on_change_nr_btl()
+        max_depth = int(depth)
+        for row_widgets in self._table_widgets:
+            if not row_widgets['depth'].value:
+                continue
+            if int(row_widgets['depth'].value) >= max_depth:
+                row_widgets['depth'].value = ''
+                row_widgets['BottleNumber'].value = ''
+                row_widgets['row'].config(bg=None)
+                # row_widgets['depth'].set_state('disabled')
+                # row_widgets['BottleNumber'].set_state('disabled')
 
     def get_data(self) -> list[dict[str, int]]:
         data = []
@@ -1669,6 +1749,48 @@ class FrameAutoFireTable(tk.Frame):
                 BottleNumber=bottle,
             ))
         return data
+
+
+class FrameAutoFireCanvas(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 controller=None,
+                 parent_frame= None,
+                 **kwargs):
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        super().__init__(parent)
+
+        self.controller = controller
+        self.parent_frame = parent_frame
+        self.instrument = None
+
+        self.grid(**self.grid_frame)
+
+        self._build_frame()
+
+    def _build_frame(self):
+        self.canvas = tk.Canvas(self, width=400, height=300, borderwidth=0, highlightthickness=0, bg="white", )
+        self.canvas.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+    def create_circle(self, x, y, r, text='', **kwargs):  # center coordinates, radius
+        x0 = x - r
+        y0 = y - r
+        x1 = x + r
+        y1 = y + r
+        oval = self.canvas.create_oval(x0, y0, x1, y1, **kwargs)
+        if text:
+            self.canvas.create_text(x, y, anchor="center")
+            self.canvas.create_text(x, y, font=("Purisa", 24), text=text)
+
+    def set_canvas(self):
+        colors = get_colors(24)
+        for i, (x, y) in enumerate(get_coordinates(24)):
+            create_circle(x, y, 15, canvas, text='x', fill=colors[i])
 
 
 def create_circle(x, y, r, canvas, text='', **kwargs): #center coordinates, radius
