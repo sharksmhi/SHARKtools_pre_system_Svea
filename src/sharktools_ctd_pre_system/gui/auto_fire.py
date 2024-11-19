@@ -229,7 +229,7 @@ class FrameAutoFire(tk.Frame):
                 pass
 
     def _validate_autofire_table(self, *args):
-        if not self._intvar_use_auto_fire.get()
+        if not self._intvar_use_auto_fire.get():
             return
         all_bottles = [item['BottleNumber'] for item in self.get_data()]
         # all_bottles = [row_widgets['BottleNumber'].value for row_widgets in self._table_widgets if (row_widgets['BottleNumber'].value and row_widgets['depth'].value)]
