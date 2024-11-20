@@ -471,11 +471,18 @@ class FrameAutoFireCanvas(tk.Frame):
             return
         self._toplevel = tk.Toplevel()
         self._toplevel.resizable(False, False)
+        self._toplevel.attributes('-topmost', True)
+        self._toplevel.protocol("WM_DELETE_WINDOW", self._on_close_toplevel)
         canvas_frame = FrameAutoFireCanvas(
             self._toplevel,
-            # scale=2.4,
             scale=float(self._scale.get()),
             include_option_large=False
         )
         canvas_frame.update_layout(self._current_table_data, nr_bottles=self._current_nr_bottles)
+
+    def _on_close_toplevel(self, *args):
+        if not self._toplevel:
+            return
+        self._toplevel.destroy()
+        self._toplevel = None
 
