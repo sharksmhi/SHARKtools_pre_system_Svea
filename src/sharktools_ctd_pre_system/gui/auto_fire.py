@@ -93,7 +93,6 @@ class FrameAutoFire(tk.Frame):
         subscribe('focus_out_wadep', self.set_max_depth_to_autofire)
         subscribe('select_auto_fire_depth', self._validate_autofire_table)
         subscribe('select_auto_fire_bottle', self._validate_autofire_table)
-        subscribe('select_auto_fire_bottle', self._validate_autofire_table)
 
     def _build_frame(self):
 
