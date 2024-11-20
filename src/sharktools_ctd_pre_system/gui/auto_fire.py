@@ -88,6 +88,7 @@ class FrameAutoFire(tk.Frame):
 
         self._build_frame()
 
+        subscribe('confirm_sensors', self._on_confirm_sensors)
         subscribe('select_station', self._on_change_station)
         subscribe('focus_out_wadep', self.set_max_depth_to_autofire)
         subscribe('select_auto_fire_depth', self._validate_autofire_table)
@@ -102,8 +103,16 @@ class FrameAutoFire(tk.Frame):
         nr_btl_frame = tk.Frame(self)
         nr_btl_frame.grid(row=1, column=0, sticky='nw')
 
-        offset_frame = tk.Frame(self)
-        offset_frame.grid(row=2, column=0, sticky='nw')
+        option_frame = tk.Frame(self)
+        option_frame.grid(row=2, column=0, sticky='nw')
+
+        option_label_frame = tk.Frame(option_frame)
+        option_label_frame.grid(row=0, column=0, sticky='w')
+
+        option_entry_frame = tk.Frame(option_frame)
+        option_entry_frame.grid(row=0, column=1, sticky='w')
+
+        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=4, column=0)
 
         self._intvar_use_auto_fire = tk.IntVar()
         self._intvar_use_auto_fire.set(True)
@@ -113,16 +122,16 @@ class FrameAutoFire(tk.Frame):
 
         tk.Radiobutton(nr_btl_frame, text='12 flaskor', variable=self._stringvar_nr_btl, value='12', command=self._on_change_nr_btl).grid(row=0, column=0)
         tk.Radiobutton(nr_btl_frame, text='24 flaskor', variable=self._stringvar_nr_btl, value='24', command=self._on_change_nr_btl).grid(row=0, column=1)
-
         self._stringvar_nr_btl.set('24')
 
-        self._stringvar_offset = tk.StringVar()
-        tk.Label(offset_frame, text='Offset').grid(row=0, column=0)
-        tk.Entry()
-        self._offset = tkw.EntryWidget(offset_frame, callback_on_change_value=self._on_change_offset, prop_entry=dict(width=10), row=0, column=1)
+        tk.Label(option_label_frame, text='Offset (db):').grid(row=0, column=0, sticky='w')
+        tk.Label(option_label_frame, text='Minimum tryck för auto fire:').grid(row=1, column=0, sticky='w')
+
+        self._offset = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_offset, prop_entry=dict(width=10), row=0, column=0)
         self._offset.set_value(0)
 
-        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=3, column=0)
+        self._min_pres = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_min_pres,
+                                       prop_entry=dict(width=10), row=1, column=0)
 
         self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
         self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
@@ -142,6 +151,9 @@ class FrameAutoFire(tk.Frame):
             return 0
         return float(value)
 
+    def _on_confirm_sensors(self, *args):
+        self._min_pres.set_value(self.controller.auto_fire_min_pressure_or_depth)
+
     def _on_change_offset(self, *args):
         value = self._offset.get_value().strip().replace(',', '.')
         new_value_list = []
@@ -151,6 +163,16 @@ class FrameAutoFire(tk.Frame):
             elif d == '.' and '.' not in new_value_list:
                 new_value_list.append(d)
         self._offset.set_value(''.join(new_value_list))
+
+    def _on_change_min_pres(self, *args):
+        value = self._min_pres.get_value().strip().replace(',', '.')
+        new_value_list = []
+        for d in list(value):
+            if d.isdigit():
+                new_value_list.append(d)
+            elif d == '.' and '.' not in new_value_list:
+                new_value_list.append(d)
+        self._min_pres.set_value(''.join(new_value_list))
 
     def _on_toggle_auto_fire(self, *args):
         if not self.parent_frame.station:
@@ -166,7 +188,8 @@ class FrameAutoFire(tk.Frame):
         self._canvas.clear_canvas()
 
     def _set_canvas_layout(self, frame):
-        self._canvas = FrameAutoFireCanvas(frame, self.controller, self, row=0, column=0)
+        # self._canvas = FrameAutoFireCanvas(frame, self.controller, self, row=0, column=0)
+        self._canvas = FrameAutoFireCanvas(frame, row=0, column=0)
 
     def _set_table_frame_layout(self, frame):
 
@@ -221,7 +244,9 @@ class FrameAutoFire(tk.Frame):
 
     def _clear_table_frame_layout(self):
         bottle_list = [''] + [str(i) for i in range(1, self.nr_bottles+1)]
-        depth_list = [''] + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(self.parent_frame.station))]
+        depth_list = ['']
+        if self.parent_frame.station:
+            depth_list = depth_list + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(self.parent_frame.station))]
 
         for row_widgets in self._table_widgets:
             row_widgets['depth'].set_state('readonly')
@@ -319,22 +344,33 @@ class FrameAutoFire(tk.Frame):
             ))
         return data
 
+    def clear_frame(self):
+        self._clear_table_frame_layout()
+        self._canvas.clear_canvas()
+
     @property
     def enable_auto_fire(self) -> bool:
         return bool(self._intvar_use_auto_fire.get())
+
+    @property
+    def auto_fire_min_pressure_or_depth(self) -> str:
+        return self._min_pres.get_value()
 
 
 class FrameAutoFireCanvas(tk.Frame):
 
     def __init__(self,
                  parent,
-                 controller=None,
-                 parent_frame=None,
-                 circle_size=20,
-                 canvas_width=400,
-                 canvas_height=400,
-                 bottle_radius=180,
-
+                 # controller=None,
+                 # parent_frame=None,
+                 circle_size: int = 20,
+                 canvas_width: int = 381,
+                 # canvas_width: int = 400,
+                 canvas_height: int = 381,
+                 # canvas_height: int = 400,
+                 bottle_radius: int = 180,
+                 scale: int | float = 1,
+                 include_option_large: bool = True,
                  **kwargs):
         self.grid_frame = {'padx': 5,
                            'pady': 5,
@@ -343,23 +379,52 @@ class FrameAutoFireCanvas(tk.Frame):
 
         super().__init__(parent)
 
-        self.controller = controller
-        self.parent_frame = parent_frame
-        self._circle_size = circle_size
-        self._canvas_width = canvas_width
-        self._canvas_height = canvas_height
-        self._bottle_radius = bottle_radius
+        # self.controller = controller
+        # self.parent_frame = parent_frame
+        # self._circle_size = circle_size
+        # self._canvas_width = canvas_width
+        # self._canvas_height = canvas_height
+        # self._bottle_radius = bottle_radius
+
+        self._circle_size = int(circle_size * scale)
+        self._canvas_width = int(canvas_width * scale) + self._circle_size
+        self._canvas_height = int(canvas_height * scale) + self._circle_size
+        self._bottle_radius = int(bottle_radius * scale)
+
+        self._include_option_large = include_option_large
 
         self.grid(**self.grid_frame)
+
+        self._current_table_data: list[dict[str, int]] = []
+        self._current_nr_bottles: int | None = None
+        self._toplevel: tk.Toplevel | None = None
 
         self._build_frame()
 
     def _build_frame(self):
         self.canvas = tk.Canvas(self, width=self._canvas_width, height=self._canvas_height, borderwidth=0, highlightthickness=0, bg="white", )
-        self.canvas.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        # self.canvas.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self.canvas.grid(column=0, row=0, sticky='nsew')
+        if self._include_option_large:
+            option_frame = tk.Frame(self)
+            option_frame.grid(column=0, row=1, sticky='nsew')
+            tk.Label(option_frame, text='Skala upp:').grid(column=0, row=0)
+            self._scale = tk.Scale(option_frame,
+                                   # label='Skala upp...',
+                                   from_=1, to=3.5, orient=tk.HORIZONTAL,
+                                   # length=100,
+                                   tickinterval=2, resolution=0.1)
+            self._scale.grid(column=1, row=0, sticky='nsew')
+            self._scale.set(2.4)
+            tk.Button(option_frame, text='Öppna uppskalad vy', command=self._open_large_canvas).grid(column=2, row=0)
 
     def clear_canvas(self):
         self.canvas.delete("all")
+        self._current_table_data = []
+        self._current_nr_bottles = None
+        if self._toplevel:
+            self._toplevel.destroy()
+            self._toplevel = None
 
     def _add_circle(self, x, y, r, text='', **kwargs):  # center coordinates, radius
         x0 = x - r
@@ -378,14 +443,18 @@ class FrameAutoFireCanvas(tk.Frame):
     def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
         self.clear_canvas()
 
+        self._current_table_data = table_data
+        self._current_nr_bottles = nr_bottles
+
         unique_depths = sorted([int(item['depth']) for item in table_data], reverse=True)
         colors = get_colors(len(unique_depths))
         depth_color_mapping = dict(zip(unique_depths, colors))
 
         index_mapping = {int(item['BottleNumber']): item for item in table_data}
         color_index = 0
-        text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
-        for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius)):
+        # text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
+        text_coordinates = get_coordinates(nr_bottles, radius=int(self._bottle_radius * 0.79), offset=int(self._circle_size * 3))
+        for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius, offset=self._circle_size)):
             data = index_mapping.get(i+1)
             if data:
                 self._add_circle(x, y, self._circle_size, text=str(i+1), fill=depth_color_mapping[int(data['depth'])])
@@ -395,3 +464,19 @@ class FrameAutoFireCanvas(tk.Frame):
                 color_index += 1
             else:
                 self._add_circle(x, y, self._circle_size, text=str(i+1))
+
+    def _open_large_canvas(self):
+        if not self._current_table_data:
+            return
+        if self._toplevel:
+            return
+        self._toplevel = tk.Toplevel()
+        self._toplevel.resizable(False, False)
+        canvas_frame = FrameAutoFireCanvas(
+            self._toplevel,
+            # scale=2.4,
+            scale=float(self._scale.get()),
+            include_option_large=False
+        )
+        canvas_frame.update_layout(self._current_table_data, nr_bottles=self._current_nr_bottles)
+
