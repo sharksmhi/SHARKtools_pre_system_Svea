@@ -2,12 +2,13 @@ import collections
 import math
 import re
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from shark_tkinter_lib import tkinter_widgets as tkw
 
 from . import components
 from ..events import subscribe
+from ..saves import SaveSelection
 
 COLORS = [
     '#1D9A6C',
@@ -37,6 +38,8 @@ COLORS = [
     '#CFECED',
 ]
 
+COLOR_NO_DEPTH = 'yellow'
+
 
 def get_colors(nr_bottles: int):
     tot_nr_colors = len(COLORS)
@@ -65,7 +68,7 @@ def get_coordinates(nr_bottles: int, radius: int = 180, offset: int = 20) -> lis
     return coords
 
 
-class FrameAutoFire(tk.Frame):
+class FrameAutoFire(tk.Frame, SaveSelection):
 
     def __init__(self,
                  parent,
@@ -86,11 +89,18 @@ class FrameAutoFire(tk.Frame):
 
         self.grid(**self.grid_frame)
 
+        self._selections_to_store = [
+            '_nr_bottles_on_rosette',
+        ]
+
         self._build_frame()
+
+        self.load_selection()
 
         subscribe('confirm_sensors', self._on_confirm_sensors)
         subscribe('select_station', self._on_change_station)
         subscribe('focus_out_wadep', self.set_max_depth_to_autofire)
+        subscribe('select_nr_bottles_on_rosette', self._on_select_nr_bottles_on_rosette)
         subscribe('select_auto_fire_depth', self._validate_autofire_table)
         subscribe('select_auto_fire_bottle', self._validate_autofire_table)
 
@@ -125,12 +135,19 @@ class FrameAutoFire(tk.Frame):
 
         tk.Label(option_label_frame, text='Offset (db):').grid(row=0, column=0, sticky='w')
         tk.Label(option_label_frame, text='Minimum tryck för auto fire:').grid(row=1, column=0, sticky='w')
+        self._label_nr_bottles_on_rosette = tk.Label(option_label_frame, text='Antal flaskor på rosetten:')
+        self._label_nr_bottles_on_rosette.grid(row=2, column=0, sticky='w')
 
         self._offset = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_offset, prop_entry=dict(width=10), row=0, column=0)
         self._offset.set_value(0)
 
         self._min_pres = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_min_pres,
                                        prop_entry=dict(width=10), row=1, column=0)
+
+        self._nr_bottles_on_rosette = components.DropdownList(option_entry_frame, 'nr_bottles_on_rosette', row=2,
+                                                              column=0)
+        self._nr_bottles_on_rosette.values = [str(i) for i in range(1, self.nr_bottles + 1)]
+        self._nr_bottles_on_rosette.set(str(self.nr_bottles))
 
         self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
         self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
@@ -142,6 +159,10 @@ class FrameAutoFire(tk.Frame):
     @property
     def nr_bottles(self) -> int:
         return int(self._stringvar_nr_btl.get())
+
+    @property
+    def nr_bottles_on_rosette(self) -> int:
+        return int(self._nr_bottles_on_rosette.get())
 
     @property
     def offset(self) -> float:
@@ -272,13 +293,17 @@ class FrameAutoFire(tk.Frame):
         self._update_table_with_default_data()
 
     def _update_canvas_layout(self):
-        self._canvas.update_layout(self.get_data(), nr_bottles=self.nr_bottles)
+        self._canvas.update_layout(self.get_data_for_layout(), nr_bottles=self.nr_bottles)
 
     def _update_table_with_default_data(self, nr_active_bottles: int = None):
         station = self.parent_frame.station
         if not station:
             return
         info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles)
+        print()
+        print(f'{nr_active_bottles=}')
+        print(f'{len(info)=}')
+        print(f'{info=}')
         for i, row_widgets in enumerate(self._table_widgets):
             if row_widgets['depth'].state == 'disabled':
                 break
@@ -304,12 +329,13 @@ class FrameAutoFire(tk.Frame):
         if not dublicates:
             self._update_canvas_layout()
 
-    def set_max_depth_to_autofire(self, depth: str | int = None) -> None:
+    def old_set_max_depth_to_autofire(self, depth: str | int = None) -> None:
         if depth is None:
             depth = self._max_depth
         if not depth:
             return
         self._set_default_table_data()
+        # self._update_table_frame_layout()
         max_depth = int(depth)
         nr_active_bottles = 0
         for item in self._table_widgets:
@@ -318,7 +344,20 @@ class FrameAutoFire(tk.Frame):
             if int(item['depth'].value) >= max_depth:
                 continue
             nr_active_bottles += 1
+        print(f'{nr_active_bottles=}')
         self._update_table_with_default_data(nr_active_bottles=nr_active_bottles)
+
+        # self._update_table_with_default_data()
+        # tot_nr_bottles = 10
+        # for i, row_widgets in enumerate(self._table_widgets):
+        #     row_widgets['row'].config(bg=None)
+        #     if i > tot_nr_bottles:
+        #         row_widgets['depth'].value = ''
+        #         row_widgets['BottleNumber'].value = ''
+        #
+        #     elif i > nr_active_bottles:
+        #         row_widgets['depth'].value = ''
+
         for row_widgets in self._table_widgets:
             if not row_widgets['depth'].value:
                 continue
@@ -329,12 +368,92 @@ class FrameAutoFire(tk.Frame):
         self._max_depth = max_depth
         self._update_canvas_layout()
 
+    def _on_select_nr_bottles_on_rosette(self, *args):
+        self.set_max_depth_to_autofire()
+
+    def set_max_depth_to_autofire(self, depth: str | int = None) -> None:
+        if depth is None:
+            depth = self._max_depth
+        if not depth:
+            return
+        self._set_default_table_data()
+
+        station = self.parent_frame.station
+        if not station:
+            return
+
+        max_depth = int(depth)
+        nr_active_bottles = 0
+        for item in self._table_widgets:
+            if not item['depth'].value:
+                continue
+            if int(item['depth'].value) >= max_depth:
+                continue
+            nr_active_bottles += 1
+
+        tot_nr_bottles = self.nr_bottles_on_rosette
+        print(f'{nr_active_bottles=}')
+        print(f'{tot_nr_bottles=}')
+
+        self._update_table_frame_layout()
+
+        skip_nr_depths = tot_nr_bottles - nr_active_bottles
+        if skip_nr_depths < 0:
+            messagebox.showwarning('Flaskor saknas', 'Det finns inte tillräckligt med flaskor för att provta alla djup')
+            return
+
+        print(f'{skip_nr_depths=}')
+
+        info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=tot_nr_bottles, nr_bottles=self.nr_bottles)
+
+        for i, row_info in enumerate(info):
+            row_widgets = self._table_widgets[i]
+            # row_widgets['row'].config(bg=None)
+            row_widgets['BottleNumber'].value = row_info['BottleNumber']
+            if i >= skip_nr_depths:
+                row_widgets['depth'].value = info[i-skip_nr_depths]['depth']
+
+        # self._update_table_with_default_data()
+        # tot_nr_bottles = 10
+        # for i, row_widgets in enumerate(self._table_widgets):
+        #     row_widgets['row'].config(bg=None)
+        #     if i > tot_nr_bottles:
+        #         row_widgets['depth'].value = ''
+        #         row_widgets['BottleNumber'].value = ''
+        #
+        #     elif i > nr_active_bottles:
+        #         row_widgets['depth'].value = ''
+
+        # for row_widgets in self._table_widgets:
+        #     if not row_widgets['depth'].value:
+        #         continue
+        #     if int(row_widgets['depth'].value) >= max_depth:
+        #         row_widgets['depth'].value = ''
+        #         row_widgets['BottleNumber'].value = ''
+        #         row_widgets['row'].config(bg=None)
+        self._max_depth = max_depth
+        self._update_canvas_layout()
+
     def get_data(self) -> list[dict[str, int]]:
         data = []
         for row_widgets in self._table_widgets:
             depth = row_widgets['depth'].value
             bottle = row_widgets['BottleNumber'].value
             if not (depth and bottle):
+                continue
+            data.append(dict(
+                depth=depth,
+                BottleNumber=bottle,
+                offset=self.offset
+            ))
+        return data
+
+    def get_data_for_layout(self) -> list[dict[str, int]]:
+        data = []
+        for row_widgets in self._table_widgets:
+            depth = row_widgets['depth'].value
+            bottle = row_widgets['BottleNumber'].value
+            if not bottle:
                 continue
             data.append(dict(
                 depth=depth,
@@ -439,7 +558,7 @@ class FrameAutoFireCanvas(tk.Frame):
         self.canvas.create_text(x, y, anchor="center")
         self.canvas.create_text(x, y, font=("Purisa", text_size), text=text)
 
-    def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
+    def old_update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
         self.clear_canvas()
 
         self._current_table_data = table_data
@@ -452,15 +571,45 @@ class FrameAutoFireCanvas(tk.Frame):
         index_mapping = {int(item['BottleNumber']): item for item in table_data}
         color_index = 0
         # text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
-        text_coordinates = get_coordinates(nr_bottles, radius=int(self._bottle_radius * 0.79), offset=int(self._circle_size * 3))
+        text_coordinates = get_coordinates(nr_bottles, radius=int(self._bottle_radius * 0.79),
+                                           offset=int(self._circle_size * 3))
         for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius, offset=self._circle_size)):
-            data = index_mapping.get(i+1)
+            data = index_mapping.get(i + 1)
             if data:
-                self._add_circle(x, y, self._circle_size, text=str(i+1), fill=depth_color_mapping[int(data['depth'])])
+                self._add_circle(x, y, self._circle_size, text=str(i + 1), fill=depth_color_mapping[int(data['depth'])])
                 tx, ty = text_coordinates[i]
                 self._add_text(tx, ty, text=str(data['depth']))
                 # self._add_circle(x, y, self._circle_size, text=str(i+1), fill=colors[color_index])
                 color_index += 1
+            else:
+                self._add_circle(x, y, self._circle_size, text=str(i + 1))
+
+    def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
+        self.clear_canvas()
+
+        self._current_table_data = table_data
+        self._current_nr_bottles = nr_bottles
+
+        unique_depths = sorted([int(item['depth']) for item in table_data if item['depth']], reverse=True)
+        colors = get_colors(len(unique_depths))
+        depth_color_mapping = dict(zip(unique_depths, colors))
+
+        index_mapping = {int(item['BottleNumber']): item for item in table_data}
+        color_index = 0
+        # text_coordinates = get_coordinates(nr_bottles, radius=self._bottle_radius - 40, offset=60)
+        text_coordinates = get_coordinates(nr_bottles, radius=int(self._bottle_radius * 0.79), offset=int(self._circle_size * 3))
+        for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius, offset=self._circle_size)):
+            data = index_mapping.get(i+1)
+            if data:
+                if data['depth']:
+                    self._add_circle(x, y, self._circle_size, text=str(i+1), fill=depth_color_mapping[int(data['depth'])])
+                    tx, ty = text_coordinates[i]
+                    self._add_text(tx, ty, text=str(data['depth']))
+                    # self._add_circle(x, y, self._circle_size, text=str(i+1), fill=colors[color_index])
+                    color_index += 1
+                else:
+                    self._add_circle(x, y, self._circle_size, text=str(i + 1),
+                                     fill=COLOR_NO_DEPTH)
             else:
                 self._add_circle(x, y, self._circle_size, text=str(i+1))
 

@@ -132,6 +132,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def save_selection(self):
         self._frame_metadata_admin.save_selection()
         self._frame_metadata_conditions.save_selection()
+        self._frame_auto_fire.save_selection()
         super().save_selection()
 
     def _set_instrument(self, instrument):

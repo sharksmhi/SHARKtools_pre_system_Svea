@@ -41,6 +41,7 @@ class EventTypes:
                 'button_goto_processing_advanced',
                 'select_auto_fire_depth',
                 'select_auto_fire_bottle',
+                'select_nr_bottles_on_rosette',
             ]
         for item in self.event_types:
             setattr(self, item, item)
