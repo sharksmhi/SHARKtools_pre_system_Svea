@@ -87,6 +87,8 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         self.instrument = None
         self._max_depth = None
 
+        self._current_basin = None
+
         self.grid(**self.grid_frame)
 
         self._selections_to_store = [
@@ -155,6 +157,10 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         tkw.grid_configure(self)
         tkw.grid_configure(use_auto_fire)
         tkw.grid_configure(nr_btl_frame)
+
+    @property
+    def current_basin(self) -> str | None:
+        return self._current_basin
 
     @property
     def nr_bottles(self) -> int:
@@ -266,7 +272,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         bottle_list = [''] + [str(i) for i in range(1, self.nr_bottles+1)]
         depth_list = ['']
         if self.parent_frame.station:
-            depth_list = depth_list + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(self.parent_frame.station))]
+            depth_list = depth_list + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(station=self.parent_frame.station)['pressure_mapping'])]
 
         for row_widgets in self._table_widgets:
             row_widgets['depth'].set_state('readonly')
@@ -299,7 +305,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         station = self.parent_frame.station
         if not station:
             return
-        info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles)
+        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles)
         print()
         print(f'{nr_active_bottles=}')
         print(f'{len(info)=}')
@@ -404,7 +410,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
 
         print(f'{skip_nr_depths=}')
 
-        info = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=tot_nr_bottles, nr_bottles=self.nr_bottles)
+        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=tot_nr_bottles, nr_bottles=self.nr_bottles)
 
         for i, row_info in enumerate(info):
             row_widgets = self._table_widgets[i]
@@ -446,6 +452,8 @@ class FrameAutoFire(tk.Frame, SaveSelection):
                 BottleNumber=bottle,
                 offset=self.offset
             ))
+        for d in data:
+            print(f'{d=}')
         return data
 
     def get_data_for_layout(self) -> list[dict[str, int]]:

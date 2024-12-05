@@ -466,8 +466,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # Auto fire
         self.controller.set_auto_fire(self._frame_auto_fire.enable_auto_fire)
         self.controller.auto_fire_min_pressure_or_depth = self._frame_auto_fire.auto_fire_min_pressure_or_depth
-        auto_fire_data = self._frame_auto_fire.get_data()
-        self.controller.set_auto_fire_bottles(auto_fire_data, self.station)
+        # self.controller.set_auto_fire_bottles(auto_fire_data, self.station)
+        self.controller.set_auto_fire_bottles(auto_fire_data, basin=self._frame_auto_fire.current_basin)
 
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
