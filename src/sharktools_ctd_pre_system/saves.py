@@ -110,7 +110,6 @@ class Saves:
                     v = str(v)
                 new_value[k] = v
             value = new_value
-        print(f'{type(value)=}: {value=}')
         self.data[key] = value
         self._save()
 

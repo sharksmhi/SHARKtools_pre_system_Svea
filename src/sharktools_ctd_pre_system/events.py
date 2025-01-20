@@ -23,6 +23,7 @@ class EventTypes:
                 'focus_out_series',
                 'focus_out_station',
                 'focus_out_depth',
+                'focus_out_wadep',
                 'focus_out_cruise',
                 'set_next_series',
                 'series_step',
@@ -37,7 +38,10 @@ class EventTypes:
                 'set_water_depth',
                 'close_seasave',
                 'button_goto_processing_simple',
-                'button_goto_processing_advanced'
+                'button_goto_processing_advanced',
+                'select_auto_fire_depth',
+                'select_auto_fire_bottle',
+                'select_nr_bottles_on_rosette',
             ]
         for item in self.event_types:
             setattr(self, item, item)

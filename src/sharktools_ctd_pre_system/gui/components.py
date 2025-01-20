@@ -316,6 +316,95 @@ class LabelDropdownList(tk.Frame, Common):
         self.value = item
 
 
+class DropdownList(tk.Frame, Common):
+
+    def __init__(self,
+                 parent,
+                 id,
+                 width=10,
+                 state='readonly',
+                 **kwargs):
+
+        self.grid_frame = {'padx': 5,
+                            'pady': 5,
+                            'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self._id = id
+        self.width = width
+        self.state = state
+
+        super().__init__(parent)
+        self.grid(**self.grid_frame)
+
+        self._old_value = None
+
+        self._create_frame()
+
+    def _create_frame(self):
+        self._stringvar = tk.StringVar()
+        self.combobox = ttk.Combobox(self, width=self.width, textvariable=self._stringvar, state=self.state)
+        self.combobox.bind("<<ComboboxSelected>>", self._on_select)
+        self.combobox.bind("<<FocusIn>>", self._on_focus_in)
+        self.combobox.bind("<<FocusOut>>", self._on_focus_out)
+        self.combobox.grid(row=0, column=0, padx=5, pady=5, sticky='e')
+
+        tkw.grid_configure(self, nr_columns=2)
+
+    def _has_new_value(self):
+        current_value = self._stringvar.get()
+        if current_value == self._old_value:
+            return False
+        self._old_value = current_value
+        return True
+
+    def _on_focus_in(self, *args):
+        self._old_value = self._stringvar.get()
+
+    def _on_focus_out(self, *args):
+        if not self._has_new_value():
+            return
+        post_event(f'focus_out_{self._id}', self.value)
+
+    def _on_select(self, *args):
+        if not self._has_new_value():
+            return
+        post_event(f'select_{self._id}', self.value)
+
+    def set_state(self, state: str) -> None:
+        self.state = state
+        self.combobox.config(state=state)
+
+    def set_bg_color(self, color: str):
+        self.combobox.config(background=color)
+
+    @property
+    def values(self):
+        return self.combobox['values']
+
+    @values.setter
+    def values(self, items):
+        current_value = self._stringvar.get()
+        self.combobox['values'] = items
+        if current_value not in items:
+            self._stringvar.set('')
+            # self._stringvar.set(items[0])
+
+    @property
+    def value(self):
+        return self._stringvar.get()
+
+    @value.setter
+    def value(self, item):
+        self._stringvar.set(item)
+
+    def get(self):
+        return self.value
+
+    def set(self, item):
+        self.value = item
+
+
 class LabelEntry(tk.Frame, Common):
 
     def __init__(self,
@@ -847,7 +936,7 @@ class IntEntry(tk.Frame, Common):
                  parent,
                  id,
                  width=8,
-                 title='IntEntry',
+                 title='',
                  state='normal',
                  min_value=None,
                  max_value=None,
@@ -874,8 +963,11 @@ class IntEntry(tk.Frame, Common):
         layout = dict(padx=5,
                       pady=5,
                       sticky='nsew')
-        self.monospace_label = MonospaceLabel(self, text=self.title)
-        self.monospace_label.grid(column=0, **layout)
+        c = 0
+        if self.title:
+            self.monospace_label = MonospaceLabel(self, text=self.title)
+            self.monospace_label.grid(column=0, **layout)
+            c += 1
 
         self._stringvar = tk.StringVar()
         # self._stringvar.trace("w", lambda name, index, mode, sv=self._stringvar: self._on_change_entry(sv))
@@ -884,7 +976,7 @@ class IntEntry(tk.Frame, Common):
         self.entry = tk.Entry(self, textvariable=self._stringvar, width=self.width)
         self.entry.bind('<FocusOut>', self._on_focus_out)
         self.entry.bind('<Return>', self._on_focus_out)
-        self.entry.grid(row=0, column=1, pady=(5, 0), padx=5, sticky='e')
+        self.entry.grid(row=0, column=c, pady=(5, 0), padx=5, sticky='e')
         self.entry.configure(state=self.state)
 
         tkw.grid_configure(self, nr_columns=2)

@@ -8,6 +8,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 import logging
+import collections
 
 import psutil
 from ..options import get_options
@@ -21,8 +22,11 @@ from ..events import subscribe
 from ..gui.translator import Translator
 from ..saves import Defaults
 from ..saves import SaveSelection
+from ctd_pre_system import exceptions as pre_system_exceptions
+from sharktools_ctd_pre_system.gui import auto_fire
 
 svepa_exceptions = None
+
 try:
     from svepa import exceptions as svepa_exceptions
 except ImportError:
@@ -121,9 +125,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('input_ok', self._input_ok)
         subscribe('add_components', self._add_components)
 
+    @property
+    def station(self):
+        return self._components['station'].value
+
     def save_selection(self):
         self._frame_metadata_admin.save_selection()
         self._frame_metadata_conditions.save_selection()
+        self._frame_auto_fire.save_selection()
         super().save_selection()
 
     def _set_instrument(self, instrument):
@@ -149,11 +158,21 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         ttk.Separator(frame, orient='vertical').grid(row=0, column=3, sticky='ns')
 
-        self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
+        frame_metadata = tk.Frame(frame)
+        frame_metadata.grid(row=0, column=4, sticky='ns')
+
+        self._frame_metadata_admin = MetadataAdminFrame(frame_metadata, self.controller, row=0, column=0, sticky='ns')
+        ttk.Separator(frame_metadata, orient='horizontal').grid(row=1, column=0, sticky='ew')
+        self._frame_metadata_conditions = MetadataConditionsFrame(frame_metadata, self.controller, row=2, column=0, sticky='ns')
+
+        # self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
 
         ttk.Separator(frame, orient='vertical').grid(row=0, column=5, sticky='ns')
 
-        self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
+        # self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
+
+        #self._frame_auto_fire = FrameAutoFireTable(frame, self.controller, self, row=0, column=6)
+        self._frame_auto_fire = auto_fire.FrameAutoFire(frame, self.controller, self, row=0, column=6)
 
         frame_bottom = tk.Frame(frame)
         frame_bottom.grid(row=1, column=0, columnspan=7)
@@ -437,6 +456,19 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         if data.get('tail'):
             data['tail'] = 'test'
 
+        try:
+            auto_fire_data = self._frame_auto_fire.get_data()
+            self.controller.check_valid_auto_fire_data(auto_fire_data)
+        except pre_system_exceptions.CtdPreSystemError as e:
+            messagebox.showerror('Problem med AutoFire', str(e))
+            return
+
+        # Auto fire
+        self.controller.set_auto_fire(self._frame_auto_fire.enable_auto_fire)
+        self.controller.auto_fire_min_pressure_or_depth = self._frame_auto_fire.auto_fire_min_pressure_or_depth
+        # self.controller.set_auto_fire_bottles(auto_fire_data, self.station)
+        self.controller.set_auto_fire_bottles(auto_fire_data, basin=self._frame_auto_fire.current_basin)
+
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
         meta_cond = {key.upper(): value for key, value in metadata_conditions.items()}
@@ -486,6 +518,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['station'].set('')
         self._components['depth'].set('')
         self._components['depth'].water_depth = ''
+        self._frame_auto_fire.clear_frame()
         # self._components['series'].increase()
 
     def _program_is_running(self, program):
