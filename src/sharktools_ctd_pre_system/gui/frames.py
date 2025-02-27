@@ -481,12 +481,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def _on_return_goto_processing_simple(self, *args):
         if not self.main_app:
             return
-        self.main_app.show_subframe('SHARKtools_ctd_processing', 'PageSimple')
+        self.main_app.show_subframe('sharktools_ctd_processing', 'PageSimple')
 
     def _on_return_goto_processing_advanced(self, *args):
         if not self.main_app:
             return
-        self.main_app.show_subframe('SHARKtools_ctd_processing', 'PageStart')
+        self.main_app.show_subframe('sharktools_ctd_processing', 'PageStart')
 
     def _run_seasave(self):
         try:
