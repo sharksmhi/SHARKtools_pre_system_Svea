@@ -159,7 +159,7 @@ class AddSampInfo(tk.Frame, Common):
 
         self._create_frame()
 
-        subscribe('load_svepa', self._update)
+        subscribe('load_platform_info', self._update)
 
     def _create_frame(self):
         layout = dict(padx=2,

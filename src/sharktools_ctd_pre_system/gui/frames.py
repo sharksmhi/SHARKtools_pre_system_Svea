@@ -9,6 +9,7 @@ from tkinter import messagebox
 from tkinter import ttk
 import logging
 import collections
+from sharktools_ctd_pre_system import plugins
 
 import psutil
 from ..options import get_options
@@ -25,12 +26,6 @@ from ..saves import SaveSelection
 from ctd_pre_system import exceptions as pre_system_exceptions
 from sharktools_ctd_pre_system.gui import auto_fire
 
-svepa_exceptions = None
-
-try:
-    from svepa import exceptions as svepa_exceptions
-except ImportError:
-    pass
 
 logger = logging.getLogger(__file__)
 
@@ -115,7 +110,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # subscribe('return_position', self._on_return_position)
         subscribe('focus_out_depth', self._on_focus_out_depth)
 
-        subscribe('button_svepa', self._on_return_load_svepa)
+        subscribe('button_platform', self._on_return_load_platform_info)
         subscribe('button_seasave', self._on_return_seasave)
 
         subscribe('button_goto_processing_simple', self._on_return_goto_processing_simple)
@@ -197,8 +192,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                                                   lat_text='Lat (nom)', lon_text='Lon (nom)',
                                                                   info_text='', **layout)
         ttk.Separator(pos_frame, orient='vertical').grid(row=0, column=1, sticky='ns')
-        self._components['svepa_position'] = components.PositionEntries(pos_frame, 'svepa_position', row=0, column=2,
-                                                                        lat_text='Svepa lat', lon_text='Svepa lon',
+        self._components['platform_position'] = components.PositionEntries(pos_frame, 'platform_position', row=0, column=2,
+                                                                        lat_text='Platform lat', lon_text='Platform lon',
                                                                         info_text='',
                                                                         **layout)
 
@@ -206,19 +201,18 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',  title=translator.get_readable('event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
         self._components['parent_event_id'] = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get_readable('parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
 
-        self._components['svepa_credentials_path'] = components.FilePathButtonText(frame_bottom,
-                                                                                   'svepa_credentials_path',
-                                                                                   title='Sökväg till inloggningsuppgifter till Svepa',
+        self._components['platform_credentials_path'] = components.FilePathButtonText(frame_bottom,
+                                                                                   'platform_credentials_path',
+                                                                                   title='Sökväg till inloggningsuppgifter till platform',
                                                                                    row=0, column=0,
                                                                                    columnspan=4, **layout)
-        self._components['svepa'] = components.CallbackButton(frame_bottom, 'svepa', title='Ladda information från '
-                                                                                           'SVEPA', row=1, column=0, **layout)
+        self._components['platform'] = components.CallbackButton(frame_bottom, 'platform', title='Ladda information från platform', row=1, column=0, **layout)
 
-        self._bool_load_svepa_automatic = tk.BooleanVar()
-        self._bool_load_svepa_automatic.set(False)
-        tk.Checkbutton(frame_bottom, text='Import SVEPA when selection station',
-                       variable=self._bool_load_svepa_automatic).grid(row=2, column=0, **layout)
-        # self._components['svepa'].button.config(state='disabled')
+        self._bool_load_platform_info_automatic = tk.BooleanVar()
+        self._bool_load_platform_info_automatic.set(False)
+        tk.Checkbutton(frame_bottom, text='Import info from platform when selection station',
+                       variable=self._bool_load_platform_info_automatic).grid(row=2, column=0, **layout)
+        # self._components['platform'].button.config(state='disabled')
         # self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
         # self._components['validate'].button.config(state='disabled')
 
@@ -239,7 +233,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Store selection
-        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'svepa_credentials_path']
+        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'platform_credentials_path']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _temp(self, dummy):
@@ -315,17 +309,17 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # self._components['parent_event_id'].value = ''
         self._components['add_samp'].value = None
         self._on_focus_out_depth()
-        if self._bool_load_svepa_automatic.get():
-            self._on_return_load_svepa()
-        # self._calculate_distance_to_svepa_pos()
+        if self._bool_load_platform_info_automatic.get():
+            self._on_return_load_platform_info()
+        # self._calculate_distance_to_platform_pos()
         self.save_selection()
 
-    def _calculate_distance_to_svepa_pos(self):
+    def _calculate_distance_to_platform_pos(self):
         self._components['distance'].value = ''
 
         station_name = self._components['station'].value
-        lat = self._components['svepa_position'].lat
-        lon = self._components['svepa_position'].lon
+        lat = self._components['platform_position'].lat
+        lon = self._components['platform_position'].lon
         if not (lat and lon):
             return
         dist = self.controller.get_distance_to_station(lat, lon, station_name)
@@ -557,57 +551,138 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         if not station_info:
             return False
 
-    def _on_return_load_svepa(self, *args):
-        if not svepa_exceptions:
-            messagebox.showerror('Load information from Svepa', 'Pythonpaket som hanterar svepa är inte installerat!')
+    def _on_return_load_platform_info(self, *args):
+        if not plugins.platform_info:
+            messagebox.showerror('Load platform information', 'No platform plugin found!')
             return
         try:
-            cred_path = self._components['svepa_credentials_path'].get()
-            if not cred_path:
-                messagebox.showerror('Load information from Svepa', 'Ingen inloggningsuppgifter till svepa angivna!')
-                return
+            cred_path = self._components['platform_credentials_path'].get()
 
-            data = self.controller.get_svepa_info(credentials_path=cred_path)
+            data = plugins.platform_info.get_platform_info(path_to_credentials=cred_path)
 
-            self._components['series'].value = data['parent_event_info'].get('counter', '')
-            self._components['cruise'].nr = data['trip_info'].get('counter', '')
+            pos = data.get('position')
+            if pos:
+                lat = pos[0]
+                lon = pos[1]
+            else:
+                lat = data.get('lat', data.get('latitude', ''))
+                lon = data.get('lon', data.get('longitude', ''))
 
-            lat = str(data.get('lat', ''))
-            lon = str(data.get('lon', ''))
-            self._components['svepa_position'].lat = lat
-            self._components['svepa_position'].lon = lon
+            series = str(data.get('series', ''))
+            cruise = str(data.get('cruise_nr', ''))
+            add_samp = str(data.get('add_samp', data.get('additional_sampling', '')))
+            depth = str(data.get('depth', ''))
+            event_id = str(data.get('event_id', ''))
+            operator = str(data.get('operator', ''))
+            parent_event_id = str(data.get('parent_event_id', ''))
+            station = str(data.get('station', ''))
+            vessel_name = str(data.get('ship_name', ''))
+            vessel_code = str(data.get('ship_code', ''))
 
-            self._calculate_distance_to_svepa_pos()
+            print(f'{data=}')
+            print(f'{lat=}')
+            print(f'{lon=}')
+
+            if series:
+                print(f'{series=}')
+                self._components['series'].value = series
+            if cruise:
+                self._components['cruise'].nr = cruise
+            if add_samp:
+                self._components['add_samp'].value = add_samp
+            # if depth:
+            #     self._components['depth'].value = depth
+            if event_id:
+                self._components['event_id'].value = event_id
+            if parent_event_id:
+                self._components['parent_event_id'].value = parent_event_id
+            if operator:
+                self._components['operator'].value = operator
+            if lat:
+                self._components['platform_position'].lat = lat
+            if lon:
+                self._components['platform_position'].lon = lon
+            if station:
+                self._components['station'].value = station
+            if vessel_name:
+                self._components['vessel'].name = vessel_name
+            if vessel_code:
+                self._components['vessel'].code = vessel_code
+
+
+
+
+
+
+            # self._components['series'].value = str(data.get('series', ''))
+            # self._components['cruise'].nr = str(data.get('cruise_nr', ''))
+            #
+            # self._components['add_samp'].value = str(data.get('add_samp', data.get('additional_sampling', '')))
+            # self._components['depth'].value = str(data.get('depth', ''))
+            # self._components['event_id'].value = str(data.get('event_id', ''))
+            # self._components['operator'].value = str(data.get('operator', ''))
+            # self._components['parent_event_id'].value = str(data.get('parent_event_id', ''))
+            #
+            # self._components['platform_position'].lat = str(lat)
+            # self._components['platform_position'].lon = str(lon)
+            #
+            # # self._components['position'].value = str(data.get('position', ''))
+            # self._components['station'].value = str(data.get('station', ''))
+            # self._components['vessel'].name = str(data.get('ship_name', ''))
+            # self._components['vessel'].code = str(data.get('ship_code', ''))
+
+
+
+
+
+
+            # self._components['series'].value = data['parent_event_info'].get('counter', '')
+            # self._components['cruise'].nr = data['trip_info'].get('counter', '')
+            #
+            # lat = str(data.get('lat', ''))
+            # lon = str(data.get('lon', ''))
+            # self._components['platform_position'].lat = lat
+            # self._components['platform_position'].lon = lon
+
+            self._calculate_distance_to_platform_pos()
 
             # ok = self._on_return_position([lat, lon])
             # if ok:
             #
-            #     # self._components['position'].source = 'Svepa'
+            #     # self._components['position'].source = 'Platform'
 
             self._set_event_id(data)
             self._set_parent_event_id(data)
 
-            post_event('load_svepa', data)
+            post_event('load_platform_info', data)
 
-        except svepa_exceptions.SvepaConnectionError as e:
-            messagebox.showerror('Load information from Svepa', 'Could not connect to Svepa database!')
-        except svepa_exceptions.SvepaEventTypeNotRunningError as e:
-            messagebox.showerror('Load information from Svepa', f'Event type {e.event_type} not running!')
-        except svepa_exceptions.SeveralSvepaEventsRunningError as e:
-            messagebox.showerror('Load information from Svepa', f'Several events are running for event type: '
-                                                                f' {e.event_type}')
-        except svepa_exceptions.SvepaException as e:
+        except Exception as e:
+            if plugins.platform_info_exceptions and isinstance(e, plugins.platform_info_exceptions.PlatformException):
+                messagebox.showerror('Load information from Platform', str(e))
+                return
             logger.critical(traceback.format_exc())
-            messagebox.showerror('Load information from Svepa', traceback.format_exc())
-        except:
-            logger.critical(traceback.format_exc())
-            messagebox.showerror('Could not load information from Svepa', traceback.format_exc())
+            messagebox.showerror('Could not load information from Platform', traceback.format_exc())
+            raise
+
+        # except platform_exceptions.PlatformConnectionError as e:
+        #     messagebox.showerror('Load information from Platform', 'Could not connect to Platform database!')
+        # except platform_exceptions.PlatformEventTypeNotRunningError as e:
+        #     messagebox.showerror('Load information from Platform', f'Event type {e.event_type} not running!')
+        # except platform_exceptions.SeveralPlatformEventsRunningError as e:
+        #     messagebox.showerror('Load information from Platform', f'Several events are running for event type: '
+        #                                                         f' {e.event_type}')
+        # except platform_exceptions.PlatformException as e:
+        #     logger.critical(traceback.format_exc())
+        #     messagebox.showerror('Load information from Platform', traceback.format_exc())
+        # except:
+        #     logger.critical(traceback.format_exc())
+        #     messagebox.showerror('Could not load information from Platform', traceback.format_exc())
 
     def _set_event_id(self, data):
-        self._components['event_id'].value = data.get('event_id', 'Ingen information från Svepa')
+        self._components['event_id'].value = data.get('event_id', 'Ingen information från Platform')
 
     def _set_parent_event_id(self, data):
-        self._components['parent_event_id'].value = data.get('parent_event_id', 'Ingen information från Svepa')
+        self._components['parent_event_id'].value = data.get('parent_event_id', 'Ingen information från Platform')
 
 
 class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -1452,7 +1527,7 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
         subscribe('series_step', self._update_data_file_info)
         subscribe('set_next_series', self._update_data_file_info)
         subscribe('focus_out_cruise', self._update_data_file_info)
-        subscribe('load_svepa', self._update_data_file_info)
+        subscribe('load_platform_info', self._update_data_file_info)
         subscribe('update_server_info', self._update_data_file_info)
 
     def _build_frame(self):
