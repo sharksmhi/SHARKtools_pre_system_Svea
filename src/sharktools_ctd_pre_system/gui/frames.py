@@ -136,6 +136,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def _add_components(self, components):
         self._components.update(components)
 
+    def update_frame(self):
+        self._clear_metadata_fields()
+        self._frame_metadata_conditions.update_frame()
+        self._set_next_series()
+
     def _build_frame(self):
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, sticky='nw')
@@ -235,6 +240,21 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # Store selection
         to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'platform_credentials_path']
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
+
+    def _clear_metadata_fields(self) -> None:
+        self._components['position'].lat = ''
+        self._components['position'].lon = ''
+        self._components['position'].source = ''
+
+        self._components['platform_position'].lat = ''
+        self._components['platform_position'].lon = ''
+        self._components['platform_position'].source = ''
+
+        self._components['event_id'].value = ''
+        self._components['parent_event_id'].value = ''
+
+        self._components['station'].value = ''
+        self._components['depth'].water_depth = ''
 
     def _temp(self, dummy):
         print_subscribers()
@@ -579,10 +599,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             vessel_name = str(data.get('ship_name', ''))
             vessel_code = str(data.get('ship_code', ''))
 
-            print(f'{data=}')
-            print(f'{lat=}')
-            print(f'{lon=}')
-
             if series:
                 print(f'{series=}')
                 self._components['series'].value = series
@@ -796,6 +812,9 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._initiate_frame()
 
         self.load_selection()
+
+    def update_frame(self):
+        self._on_close_seasave()
 
     def _build_frame(self):
         frame = tk.Frame(self)
@@ -1574,9 +1593,10 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
                 return
             raise
 
-    def _update_frame(self):
+    def update_frame(self):
         # self.instrument_text_frame.instrument = self.__instrument
         self.content_frame.instrument = self.__instrument
+        self.content_frame.update_frame()
 
     def save_selection(self):
         self.content_frame.save_selection()
@@ -1589,7 +1609,7 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
     @instrument.setter
     def instrument(self, name):
         self.__instrument = name
-        self._update_frame()
+        self.update_frame()
 
 
 class FrameManageCTDcastsTransect(tk.Frame):
