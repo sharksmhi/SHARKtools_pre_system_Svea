@@ -552,29 +552,84 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return False
 
     def _on_return_load_platform_info(self, *args):
-        for key in sorted(self._components):
-            print(f'{key=}')
+        if not plugins.platform_info:
+            messagebox.showerror('Load platform information', 'No platform plugin found!')
+            return
         try:
             cred_path = self._components['platform_credentials_path'].get()
 
-            data = plugins.platform_info(credentials_path=cred_path)
+            data = plugins.platform_info.get_platform_info(path_to_credentials=cred_path)
 
-            self._components['series'].value = str(data.get('series', ''))
-            self._components['cruise'].nr = str(data.get('cruise_nr', ''))
+            pos = data.get('position')
+            if pos:
+                lat = pos[0]
+                lon = pos[1]
+            else:
+                lat = data.get('lat', data.get('latitude', ''))
+                lon = data.get('lon', data.get('longitude', ''))
 
-            self._components['add_samp'].value = str(data.get('add_samp', ''))
-            self._components['depth'].value = str(data.get('depth', ''))
-            self._components['event_id'].value = str(data.get('event_id', ''))
-            self._components['operator'].value = str(data.get('operator', ''))
-            self._components['parent_event_id'].value = str(data.get('parent_event_id', ''))
+            series = str(data.get('series', ''))
+            cruise = str(data.get('cruise_nr', ''))
+            add_samp = str(data.get('add_samp', data.get('additional_sampling', '')))
+            depth = str(data.get('depth', ''))
+            event_id = str(data.get('event_id', ''))
+            operator = str(data.get('operator', ''))
+            parent_event_id = str(data.get('parent_event_id', ''))
+            station = str(data.get('station', ''))
+            vessel_name = str(data.get('ship_name', ''))
+            vessel_code = str(data.get('ship_code', ''))
 
-            self._components['platform_position'].lat = str(data.get('lat'))
-            self._components['platform_position'].lon = str(data.get('lon'))
+            print(f'{data=}')
+            print(f'{lat=}')
+            print(f'{lon=}')
 
-            # self._components['position'].value = str(data.get('position', ''))
-            self._components['station'].value = str(data.get('station', ''))
-            self._components['vessel'].name = str(data.get('ship_name', ''))
-            self._components['vessel'].code = str(data.get('ship_code', ''))
+            if series:
+                print(f'{series=}')
+                self._components['series'].value = series
+            if cruise:
+                self._components['cruise'].nr = cruise
+            if add_samp:
+                self._components['add_samp'].value = add_samp
+            # if depth:
+            #     self._components['depth'].value = depth
+            if event_id:
+                self._components['event_id'].value = event_id
+            if parent_event_id:
+                self._components['parent_event_id'].value = parent_event_id
+            if operator:
+                self._components['operator'].value = operator
+            if lat:
+                self._components['platform_position'].lat = lat
+            if lon:
+                self._components['platform_position'].lon = lon
+            if station:
+                self._components['station'].value = station
+            if vessel_name:
+                self._components['vessel'].name = vessel_name
+            if vessel_code:
+                self._components['vessel'].code = vessel_code
+
+
+
+
+
+
+            # self._components['series'].value = str(data.get('series', ''))
+            # self._components['cruise'].nr = str(data.get('cruise_nr', ''))
+            #
+            # self._components['add_samp'].value = str(data.get('add_samp', data.get('additional_sampling', '')))
+            # self._components['depth'].value = str(data.get('depth', ''))
+            # self._components['event_id'].value = str(data.get('event_id', ''))
+            # self._components['operator'].value = str(data.get('operator', ''))
+            # self._components['parent_event_id'].value = str(data.get('parent_event_id', ''))
+            #
+            # self._components['platform_position'].lat = str(lat)
+            # self._components['platform_position'].lon = str(lon)
+            #
+            # # self._components['position'].value = str(data.get('position', ''))
+            # self._components['station'].value = str(data.get('station', ''))
+            # self._components['vessel'].name = str(data.get('ship_name', ''))
+            # self._components['vessel'].code = str(data.get('ship_code', ''))
 
 
 
@@ -607,6 +662,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 return
             logger.critical(traceback.format_exc())
             messagebox.showerror('Could not load information from Platform', traceback.format_exc())
+            raise
 
         # except platform_exceptions.PlatformConnectionError as e:
         #     messagebox.showerror('Load information from Platform', 'Could not connect to Platform database!')
