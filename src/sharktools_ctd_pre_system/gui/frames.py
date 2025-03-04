@@ -599,31 +599,53 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             vessel_name = str(data.get('ship_name', ''))
             vessel_code = str(data.get('ship_code', ''))
 
-            if series:
-                print(f'{series=}')
-                self._components['series'].value = series
-            if cruise:
-                self._components['cruise'].nr = cruise
-            if add_samp:
-                self._components['add_samp'].value = add_samp
-            # if depth:
-            #     self._components['depth'].value = depth
-            if event_id:
-                self._components['event_id'].value = event_id
-            if parent_event_id:
-                self._components['parent_event_id'].value = parent_event_id
-            if operator:
-                self._components['operator'].value = operator
-            if lat:
-                self._components['platform_position'].lat = lat
-            if lon:
-                self._components['platform_position'].lon = lon
-            if station:
-                self._components['station'].value = station
-            if vessel_name:
-                self._components['vessel'].name = vessel_name
-            if vessel_code:
-                self._components['vessel'].code = vessel_code
+            air_pres = str(data.get('air_pres', ''))
+            air_temp = str(data.get('air_temp', ''))
+            wind_spd = str(data.get('wind_spd', ''))
+            wind_dir = str(data.get('wind_dir', ''))
+
+            self._components['series'].value = series
+            self._components['cruise'].nr = cruise
+            self._components['add_samp'].value = add_samp
+            self._components['depth'].value = depth
+            self._components['event_id'].value = event_id
+            self._components['parent_event_id'].value = parent_event_id
+            self._components['operator'].value = operator
+            self._components['platform_position'].lat = lat
+            self._components['platform_position'].lon = lon
+            self._components['station'].value = station
+            self._components['vessel'].name = vessel_name
+            self._components['vessel'].code = vessel_code
+
+            self._components['winsp'].code = wind_spd
+            self._components['windir'].code = wind_dir
+            self._components['airpres'].code = air_pres
+            self._components['airtemp'].code = air_temp
+
+            # if series:
+            #     self._components['series'].value = series
+            # if cruise:
+            #     self._components['cruise'].nr = cruise
+            # if add_samp:
+            #     self._components['add_samp'].value = add_samp
+            # # if depth:
+            # #     self._components['depth'].value = depth
+            # if event_id:
+            #     self._components['event_id'].value = event_id
+            # if parent_event_id:
+            #     self._components['parent_event_id'].value = parent_event_id
+            # if operator:
+            #     self._components['operator'].value = operator
+            # if lat:
+            #     self._components['platform_position'].lat = lat
+            # if lon:
+            #     self._components['platform_position'].lon = lon
+            # if station:
+            #     self._components['station'].value = station
+            # if vessel_name:
+            #     self._components['vessel'].name = vessel_name
+            # if vessel_code:
+            #     self._components['vessel'].code = vessel_code
 
 
 
@@ -863,7 +885,6 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=8, column=0, **layout)
         self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=9, column=0, **layout)
         self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=10, column=0, **layout)
-
         # Försystem: ändra ordning i högerkolumnen till: bottendjup – vind hast – riktning – lufttryck – temp. Så stämmer det med ordnignen på protokollet
 
         tkw.grid_configure(frame, nr_rows=11)
