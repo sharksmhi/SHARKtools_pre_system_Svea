@@ -55,7 +55,7 @@ class PageStart(tk.Frame):
         self._frame_select_instrument.save_selection()
 
     def update_page(self):
-        pass
+        self._frame_manage_ctd_casts.update_frame()
 
     def _create_frame(self):
 

@@ -178,9 +178,9 @@ class AddSampInfo(tk.Frame, Common):
 
     def _update(self, data):
         add_samp_list = data.get('running_event_types', [])
-        self._update_rigth_widgets(add_samp_list)
+        self._update_right_widgets(add_samp_list)
 
-    def _update_rigth_widgets(self, add_samp_list):
+    def _update_right_widgets(self, add_samp_list):
         layout = dict(padx=5,
                       pady=1,
                       sticky='nw')
@@ -203,7 +203,7 @@ class AddSampInfo(tk.Frame, Common):
     def value(self, items):
         if not items:
             items = []
-        self._update_rigth_widgets(items)
+        self._update_right_widgets(items)
 
 
 class LabelDropdownList(tk.Frame, Common):
