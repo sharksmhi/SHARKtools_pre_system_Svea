@@ -39,6 +39,7 @@ COLORS = [
 ]
 
 COLOR_NO_DEPTH = 'yellow'
+COLOR_EXCLUDE = 'red'
 
 
 def get_colors(nr_bottles: int):
@@ -123,7 +124,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         option_entry_frame = tk.Frame(option_frame)
         option_entry_frame.grid(row=0, column=1, sticky='w')
 
-        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout'], row=4, column=0)
+        self._auto_fire_notebook = tkw.NotebookWidget(self, frames=['Tabell', 'Layout', 'Excludera flaskor'], row=4, column=0)
 
         self._intvar_use_auto_fire = tk.IntVar()
         self._intvar_use_auto_fire.set(True)
@@ -159,6 +160,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
 
         self._set_table_frame_layout(self._auto_fire_notebook.get_frame('Tabell'))
         self._set_canvas_layout(self._auto_fire_notebook.get_frame('Layout'))
+        self._set_exclude_layout(self._auto_fire_notebook.get_frame('Excludera flaskor'))
 
         tkw.grid_configure(self)
         tkw.grid_configure(use_auto_fire)
@@ -181,6 +183,16 @@ class FrameAutoFire(tk.Frame, SaveSelection):
     @property
     def nr_bottles_on_rosette(self) -> int:
         return int(self._nr_bottles_on_rosette.get())
+
+    @property
+    def exclude_bottles(self) -> list[str]:
+        return self._exclude_listbox.get_selected()
+
+    @property
+    def active_bottles_list(self) -> list[str]:
+        bottle_list = [str(i) for i in range(1, self.nr_bottles + 1)]
+        bottle_list = [b for b in bottle_list if b not in self.exclude_bottles]
+        return bottle_list
 
     @property
     def offset(self) -> float:
@@ -231,6 +243,12 @@ class FrameAutoFire(tk.Frame, SaveSelection):
     def _set_canvas_layout(self, frame):
         # self._canvas = FrameAutoFireCanvas(frame, self.controller, self, row=0, column=0)
         self._canvas = FrameAutoFireCanvas(frame, row=0, column=0)
+
+    def _set_exclude_layout(self, frame):
+        tk.Label(frame, text='Välj flaskor som inte ska användas').grid(row=0, column=0)
+        self._exclude_listbox = tkw.ListboxSelectionWidget(frame,
+                                                           callback=self._on_exclude_bottles,
+                                                           row=1, column=0)
 
     def _set_table_frame_layout(self, frame):
 
@@ -284,7 +302,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
             row_widgets['BottleNumber'].set_state('readonly')
 
     def _clear_table_frame_layout(self):
-        bottle_list = [''] + [str(i) for i in range(1, self.nr_bottles+1)]
+        bottle_list = [''] + self.active_bottles_list
         depth_list = ['']
         if self.parent_frame.station:
             depth_list = depth_list + [str(d) for d in sorted(self.controller.get_pressure_mapping_for_station(station=self.parent_frame.station)['pressure_mapping'])]
@@ -305,7 +323,13 @@ class FrameAutoFire(tk.Frame, SaveSelection):
     def _on_change_station(self, *args):
         self._on_change_nr_btl()
 
+    def _on_exclude_bottles(self, *args):
+        self._on_change_nr_btl()
+        # self.set_max_depth_to_autofire()
+
     def _on_change_nr_btl(self, *args):
+        items = [str(nr + 1) for nr in range(self.nr_bottles)]
+        self._exclude_listbox.update_items(items, keep_selected=True)
         self._set_default_table_data()
         self._update_canvas_layout()
 
@@ -314,13 +338,13 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         self._update_table_with_default_data()
 
     def _update_canvas_layout(self):
-        self._canvas.update_layout(self.get_data_for_layout(), nr_bottles=self.nr_bottles)
+        self._canvas.update_layout(self.get_data_for_layout(), nr_bottles=self.nr_bottles, exclude_bottles=self.exclude_bottles)
 
     def _update_table_with_default_data(self, nr_active_bottles: int = None):
         station = self.parent_frame.station
         if not station:
             return
-        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles)
+        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=nr_active_bottles, nr_bottles=self.nr_bottles, exclude_bottles=self.exclude_bottles)
         print()
         print(f'{nr_active_bottles=}')
         print(f'{len(info)=}')
@@ -425,7 +449,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
 
         print(f'{skip_nr_depths=}')
 
-        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=tot_nr_bottles, nr_bottles=self.nr_bottles)
+        info, self._current_basin = self.controller.get_auto_fire_info_for_station(station, nr_active_bottles=tot_nr_bottles, nr_bottles=self.nr_bottles, exclude_bottles=self.exclude_bottles)
 
         for i, row_info in enumerate(info):
             row_widgets = self._table_widgets[i]
@@ -481,7 +505,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
             data.append(dict(
                 depth=depth,
                 BottleNumber=bottle,
-                offset=self.offset
+                offset=self.offset,
             ))
         return data
 
@@ -533,6 +557,7 @@ class FrameAutoFireCanvas(tk.Frame):
         self._bottle_radius = int(bottle_radius * scale)
 
         self._include_option_large = include_option_large
+        self._exclude_bottles = []
 
         self.grid(**self.grid_frame)
 
@@ -562,6 +587,7 @@ class FrameAutoFireCanvas(tk.Frame):
     def clear_canvas(self):
         self.canvas.delete("all")
         self._current_table_data = []
+        self._exclude_bottles = []
         self._current_nr_bottles = None
         if self._toplevel:
             self._toplevel.destroy()
@@ -607,8 +633,9 @@ class FrameAutoFireCanvas(tk.Frame):
             else:
                 self._add_circle(x, y, self._circle_size, text=str(i + 1))
 
-    def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24):
+    def update_layout(self, table_data: list[dict[str, int]], nr_bottles: int = 24, exclude_bottles: list[str] = None):
         self.clear_canvas()
+        self._exclude_bottles = exclude_bottles
 
         self._current_table_data = table_data
         self._current_nr_bottles = nr_bottles
@@ -623,6 +650,9 @@ class FrameAutoFireCanvas(tk.Frame):
         text_coordinates = get_coordinates(nr_bottles, radius=int(self._bottle_radius * 0.79), offset=int(self._circle_size * 3))
         for i, (x, y) in enumerate(get_coordinates(nr_bottles, radius=self._bottle_radius, offset=self._circle_size)):
             data = index_mapping.get(i+1)
+            if str(i+1) in self._exclude_bottles:
+                self._add_circle(x, y, self._circle_size, text=str(i + 1),
+                                 fill=COLOR_EXCLUDE)
             if data:
                 if data['depth']:
                     self._add_circle(x, y, self._circle_size, text=str(i+1), fill=depth_color_mapping[int(data['depth'])])
@@ -650,7 +680,7 @@ class FrameAutoFireCanvas(tk.Frame):
             scale=float(self._scale.get()),
             include_option_large=False
         )
-        canvas_frame.update_layout(self._current_table_data, nr_bottles=self._current_nr_bottles)
+        canvas_frame.update_layout(self._current_table_data, nr_bottles=self._current_nr_bottles, exclude_bottles=self._exclude_bottles)
 
     def _on_close_toplevel(self, *args):
         if not self._toplevel:

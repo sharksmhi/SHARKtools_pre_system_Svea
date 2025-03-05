@@ -342,8 +342,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # self._components['parent_event_id'].value = ''
         self._components['add_samp'].value = None
         self._on_focus_out_depth()
-        if self._bool_load_platform_info_automatic.get():
-            self._on_return_load_platform_info()
+        # if self._bool_load_platform_info_automatic.get():
+        #     self._on_return_load_platform_info()
         # self._calculate_distance_to_platform_pos()
         self.save_selection()
 
