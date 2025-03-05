@@ -10,6 +10,7 @@ from tkinter import ttk
 import logging
 import collections
 from sharktools_ctd_pre_system import plugins
+import uuid
 
 import psutil
 from ..options import get_options
@@ -141,6 +142,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._frame_metadata_conditions.update_frame()
         self._set_next_series()
 
+    @property
+    def platform_button_text(self) -> str:
+        if not plugins.platform_info:
+            return f'Generera EventID och ParentEventID'
+        return f'Ladda information från {plugins.get_platform_info().get('platform_name', 'platform')}'
+
     def _build_frame(self):
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, sticky='nw')
@@ -180,13 +187,19 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame, nr_columns=7, nr_rows=2)
 
         self._components = {}
-        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=1, column=0, **layout)
-        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=2, column=0, **layout)
-        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=3, column=0, **layout)
-        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=4, column=0, **layout)
-        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=5, column=0, **layout)
-        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=6, column=0, **layout)
+        self._components['platform'] = components.CallbackButton(frame_left,
+                                                                 'platform',
+                                                                 title=self.platform_button_text,
+                                                                 button_config=dict(bg='darkgreen', height=3),
+                                                                 row=0, column=0, **layout)
+
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=2, column=0, **layout)
+        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=3, column=0, **layout)
+        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=4, column=0, **layout)
+        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=5, column=0, **layout)
+        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=6, column=0, **layout)
+        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=7, column=0, **layout)
 
         self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
@@ -211,12 +224,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                                                                    title='Sökväg till inloggningsuppgifter till platform',
                                                                                    row=0, column=0,
                                                                                    columnspan=4, **layout)
-        self._components['platform'] = components.CallbackButton(frame_bottom, 'platform', title='Ladda information från platform', row=1, column=0, **layout)
 
-        self._bool_load_platform_info_automatic = tk.BooleanVar()
-        self._bool_load_platform_info_automatic.set(False)
-        tk.Checkbutton(frame_bottom, text='Import info from platform when selection station',
-                       variable=self._bool_load_platform_info_automatic).grid(row=2, column=0, **layout)
+
+        # self._bool_load_platform_info_automatic = tk.BooleanVar()
+        # self._bool_load_platform_info_automatic.set(False)
+        # tk.Checkbutton(frame_bottom, text='Import info from platform when selection station',
+        #                variable=self._bool_load_platform_info_automatic).grid(row=2, column=0, **layout)
         # self._components['platform'].button.config(state='disabled')
         # self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
         # self._components['validate'].button.config(state='disabled')
@@ -492,6 +505,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['station'].value = self._components['station'].value.replace(',', '.')
         self._components['station'].update()
         post_event('update_components', None)
+        if not self._components['event_id'].value:
+            messagebox.showerror('Inget EventID', 'EventID saknas. Ladda platformsinformation eller generera ID')
+            return
         if self._components['tail'].value:
             ans = messagebox.askyesno('Skapar testfil', 'Vill du skapa en testfil?')
             if not ans:
@@ -573,12 +589,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _on_return_load_platform_info(self, *args):
         if not plugins.platform_info:
-            messagebox.showerror('Load platform information', 'No platform plugin found!')
+            data = plugins.get_current_platform_data()
+            self._set_event_id(data)
+            self._set_parent_event_id(data)
             return
         try:
             cred_path = self._components['platform_credentials_path'].get()
 
-            data = plugins.platform_info.get_platform_info(path_to_credentials=cred_path)
+            data = plugins.get_current_platform_data(path_to_credentials=cred_path)
 
             pos = data.get('position')
             if pos:
@@ -592,38 +610,46 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             cruise = str(data.get('cruise_nr', ''))
             add_samp = str(data.get('add_samp', data.get('additional_sampling', '')))
             depth = str(data.get('depth', ''))
-            event_id = str(data.get('event_id', ''))
             operator = str(data.get('operator', ''))
-            parent_event_id = str(data.get('parent_event_id', ''))
             station = str(data.get('station', ''))
             vessel_name = str(data.get('ship_name', ''))
             vessel_code = str(data.get('ship_code', ''))
 
-            if series:
-                print(f'{series=}')
-                self._components['series'].value = series
-            if cruise:
-                self._components['cruise'].nr = cruise
-            if add_samp:
-                self._components['add_samp'].value = add_samp
-            # if depth:
-            #     self._components['depth'].value = depth
-            if event_id:
-                self._components['event_id'].value = event_id
-            if parent_event_id:
-                self._components['parent_event_id'].value = parent_event_id
-            if operator:
-                self._components['operator'].value = operator
-            if lat:
-                self._components['platform_position'].lat = lat
-            if lon:
-                self._components['platform_position'].lon = lon
-            if station:
-                self._components['station'].value = station
-            if vessel_name:
-                self._components['vessel'].name = vessel_name
-            if vessel_code:
-                self._components['vessel'].code = vessel_code
+            self._components['series'].value = series
+            self._components['cruise'].nr = cruise
+            self._components['add_samp'].value = add_samp
+            self._components['depth'].value = depth
+            self._components['operator'].value = operator
+            self._components['platform_position'].lat = lat
+            self._components['platform_position'].lon = lon
+            self._components['station'].value = station
+            self._components['vessel'].name = vessel_name
+            self._components['vessel'].code = vessel_code
+
+            # if series:
+            #     self._components['series'].value = series
+            # if cruise:
+            #     self._components['cruise'].nr = cruise
+            # if add_samp:
+            #     self._components['add_samp'].value = add_samp
+            # # if depth:
+            # #     self._components['depth'].value = depth
+            # if event_id:
+            #     self._components['event_id'].value = event_id
+            # if parent_event_id:
+            #     self._components['parent_event_id'].value = parent_event_id
+            # if operator:
+            #     self._components['operator'].value = operator
+            # if lat:
+            #     self._components['platform_position'].lat = lat
+            # if lon:
+            #     self._components['platform_position'].lon = lon
+            # if station:
+            #     self._components['station'].value = station
+            # if vessel_name:
+            #     self._components['vessel'].name = vessel_name
+            # if vessel_code:
+            #     self._components['vessel'].code = vessel_code
 
 
 
@@ -695,10 +721,10 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         #     messagebox.showerror('Could not load information from Platform', traceback.format_exc())
 
     def _set_event_id(self, data):
-        self._components['event_id'].value = data.get('event_id', 'Ingen information från Platform')
+        self._components['event_id'].value = data.get('event_id', str(uuid.uuid4()))
 
     def _set_parent_event_id(self, data):
-        self._components['parent_event_id'].value = data.get('parent_event_id', 'Ingen information från Platform')
+        self._components['parent_event_id'].value = data.get('parent_event_id', str(uuid.uuid4()))
 
 
 class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -806,6 +832,7 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('select_default_user', self._on_change_default_user)
         subscribe('set_water_depth', self._on_set_water_depth)
         subscribe('close_seasave', self._on_close_seasave)
+        subscribe('load_platform_info', self.update_load_platform_info)
 
         self._build_frame()
 
@@ -863,7 +890,6 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=8, column=0, **layout)
         self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=9, column=0, **layout)
         self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=10, column=0, **layout)
-
         # Försystem: ändra ordning i högerkolumnen till: bottendjup – vind hast – riktning – lufttryck – temp. Så stämmer det med ordnignen på protokollet
 
         tkw.grid_configure(frame, nr_rows=11)
@@ -905,6 +931,17 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _on_change_default_user(self, user):
         self.load_selection(default_user=user)
+
+    def update_load_platform_info(self, data: dict) -> None:
+        winsp = str(data.get('wind_spd', ''))
+        windir = str(data.get('wind_dir', ''))
+        airpres = str(data.get('air_pres', ''))
+        airtemp = str(data.get('air_temp', ''))
+
+        self._components['winsp'].value = winsp
+        self._components['windir'].value = windir
+        self._components['airpres'].value = airpres
+        self._components['airtemp'].value = airtemp
 
 
 class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
