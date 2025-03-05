@@ -135,13 +135,19 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         tk.Radiobutton(nr_btl_frame, text='24 flaskor', variable=self._stringvar_nr_btl, value='24', command=self._on_change_nr_btl).grid(row=0, column=1)
         self._stringvar_nr_btl.set('24')
 
-        tk.Label(option_label_frame, text='Offset (db):').grid(row=0, column=0, sticky='w')
+        self._offset_label = tk.Label(option_label_frame, text='Offset (db):')
+        self._offset_label.grid(row=0, column=0, sticky='w')
+        self._offset_label.bind('<Control-Button-1>', self._on_click_offset_label)
         tk.Label(option_label_frame, text='Minimum tryck för auto fire:').grid(row=1, column=0, sticky='w')
         self._label_nr_bottles_on_rosette = tk.Label(option_label_frame, text='Antal flaskor på rosetten:')
         self._label_nr_bottles_on_rosette.grid(row=2, column=0, sticky='w')
 
-        self._offset = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_offset, prop_entry=dict(width=10), row=0, column=0)
-        self._offset.set_value(0)
+        self._offset = tkw.EntryWidget(option_entry_frame,
+                                       callback_on_change_value=self._on_change_offset,
+                                       callback_on_focus_out=self._on_leave_offset,
+                                       prop_entry=dict(width=10), row=0, column=0)
+        self._offset.set_value(-0.1)
+        self._offset.disable_widget()
 
         self._min_pres = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_min_pres,
                                        prop_entry=dict(width=10), row=1, column=0)
@@ -157,6 +163,12 @@ class FrameAutoFire(tk.Frame, SaveSelection):
         tkw.grid_configure(self)
         tkw.grid_configure(use_auto_fire)
         tkw.grid_configure(nr_btl_frame)
+
+    def _on_click_offset_label(self, *args):
+        self._offset.enable_widget()
+
+    def _on_leave_offset(self, *args):
+        self._offset.disable_widget()
 
     @property
     def current_basin(self) -> str | None:
@@ -180,10 +192,13 @@ class FrameAutoFire(tk.Frame, SaveSelection):
     def _on_confirm_sensors(self, *args):
         self._min_pres.set_value(self.controller.auto_fire_min_pressure_or_depth)
 
+
     def _on_change_offset(self, *args):
         value = self._offset.get_value().strip().replace(',', '.')
         new_value_list = []
         for d in list(value):
+            if not new_value_list and d == '-':
+                new_value_list.append(d)
             if d.isdigit():
                 new_value_list.append(d)
             elif d == '.' and '.' not in new_value_list:
