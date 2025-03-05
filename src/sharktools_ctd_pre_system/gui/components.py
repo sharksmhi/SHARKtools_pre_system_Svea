@@ -678,6 +678,7 @@ class CallbackButton(tk.Frame, Common):
                  parent,
                  id,
                  title='CallbackButton',
+                 button_config: dict = None,
                  **kwargs):
 
         self.grid_frame = {'padx': 5,
@@ -687,6 +688,7 @@ class CallbackButton(tk.Frame, Common):
 
         self._id = id
         self.title = title
+        self._button_config = button_config or {}
 
         super().__init__(parent)
         self.grid(**self.grid_frame)
@@ -698,7 +700,7 @@ class CallbackButton(tk.Frame, Common):
                       pady=5,
                       sticky='nsew')
 
-        self.button = tk.Button(self, text=self.title, command=self._callback)
+        self.button = tk.Button(self, text=self.title, command=self._callback, **self._button_config)
         self.button.grid(**layout)
 
         tkw.grid_configure(self)
