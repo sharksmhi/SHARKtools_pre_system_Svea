@@ -146,7 +146,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def platform_button_text(self) -> str:
         if not plugins.platform_info:
             return f'Generera EventID och ParentEventID'
-        return f'Ladda information från {plugins.get_platform_info().get('platform_name', 'platform')}'
+        return f'Ladda information från {plugins.get_platform_info().get("platform_name", "platform")}'
 
     def _build_frame(self):
         frame = tk.Frame(self)
