@@ -7,7 +7,7 @@ authors = [
 ]
 dependencies = [
     "ctd-pre-system @ git+https://github.com/sharksmhi/pre_system_svea.git@v2.0.0",
-    "SHARKtools @ git+https://github.com/sharksmhi/SHARKtools.git@v1.0.0",
+    "SHARKtools @ git+https://github.com/sharksmhi/SHARKtools.git@v1.1.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
