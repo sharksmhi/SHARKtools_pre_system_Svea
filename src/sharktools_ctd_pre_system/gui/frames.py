@@ -618,11 +618,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self._components['series'].value = series
             self._components['cruise'].nr = cruise
             self._components['add_samp'].value = add_samp
-            self._components['depth'].value = depth
-            self._components['operator'].value = operator
+            #self._components['depth'].value = depth
+            #self._components['operator'].value = operator
             self._components['platform_position'].lat = lat
             self._components['platform_position'].lon = lon
-            self._components['station'].value = station
+            #self._components['station'].value = station
             self._components['vessel'].name = vessel_name
             self._components['vessel'].code = vessel_code
 
@@ -686,7 +686,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             # self._components['platform_position'].lat = lat
             # self._components['platform_position'].lon = lon
 
-            self._calculate_distance_to_platform_pos()
+            #self._calculate_distance_to_platform_pos()
 
             # ok = self._on_return_position([lat, lon])
             # if ok:
