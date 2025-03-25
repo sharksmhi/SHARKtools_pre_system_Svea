@@ -147,7 +147,7 @@ class FrameAutoFire(tk.Frame, SaveSelection):
                                        callback_on_change_value=self._on_change_offset,
                                        callback_on_focus_out=self._on_leave_offset,
                                        prop_entry=dict(width=10), row=0, column=0)
-        self._offset.set_value(-0.1)
+        self._offset.set_value(0.4)
         self._offset.disable_widget()
 
         self._min_pres = tkw.EntryWidget(option_entry_frame, callback_on_change_value=self._on_change_min_pres,
