@@ -711,6 +711,9 @@ class CallbackButton(tk.Frame, Common):
     def set_state(self, state):
         self.button.configure(state=state)
 
+    def set_title(self, title: str) -> None:
+        self.button.config(text=title)
+
 
 class DepthEntry(tk.Frame, Common):
 
@@ -1190,6 +1193,7 @@ class SelectedDefaultUserTextFrame(tk.Frame, Common):
                                                         padx=5, pady=5, sticky='w')
         self.user_selection_widget.add_target(self._on_select_user)
 
+
     def _on_select_user(self, *args):
         user = self.user_selection_widget.get()
         post_event(f'select_default_user', user)
@@ -1201,6 +1205,9 @@ class SelectedDefaultUserTextFrame(tk.Frame, Common):
         if item not in self._default_users:
             return
         self.user_selection_widget.set(item)
+
+    def trigger_select(self, *args) -> None:
+        self._on_select_user()
 
 
 class SeriesEntryPicker(tk.Frame, Common):
@@ -1761,6 +1768,9 @@ class LabelCheckbox(tk.Frame, Common):
     @property
     def value(self):
         return self.get()
+
+    def set_state(self, state: str) -> None:
+        self.checkbutton.config(state=state)
 
 
 class PositionEntries(tk.Frame, Common):

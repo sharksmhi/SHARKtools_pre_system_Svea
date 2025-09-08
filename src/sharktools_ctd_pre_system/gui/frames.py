@@ -104,13 +104,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.load_selection()
 
         subscribe('confirm_sensors', self._set_instrument)
-        subscribe('confirm_sensors', self._set_next_series)
+        # subscribe('confirm_sensors', self._set_next_series)
         # subscribe('focus_out_cruise', self._set_next_series)
         subscribe('select_station', self._on_select_station)
         subscribe('focus_out_station', self._on_select_station)
         # subscribe('return_position', self._on_return_position)
         subscribe('focus_out_depth', self._on_focus_out_depth)
 
+        subscribe('toggle_use_platform', self._check_use_platform)
         subscribe('button_platform', self._on_return_load_platform_info)
         subscribe('button_seasave', self._on_return_seasave)
 
@@ -120,6 +121,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
         subscribe('add_components', self._add_components)
+
+        self._check_use_platform()
 
     @property
     def station(self):
@@ -145,6 +148,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     @property
     def platform_button_text(self) -> str:
         if not plugins.platform_info:
+            return f'Generera EventID och ParentEventID'
+        if not self._components["use_platform"].value:
             return f'Generera EventID och ParentEventID'
         return f'Ladda information från {plugins.get_platform_info().get("platform_name", "platform")}'
 
@@ -187,19 +192,23 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame, nr_columns=7, nr_rows=2)
 
         self._components = {}
+        self._components["use_platform"] = components.LabelCheckbox(frame_left,
+                                                                    "use_platform",
+                                                                    title=translator.get_readable('use_platform'),
+                                                                    row=0, column=0, **layout)
         self._components['platform'] = components.CallbackButton(frame_left,
                                                                  'platform',
                                                                  title=self.platform_button_text,
-                                                                 button_config=dict(bg='darkgreen', height=3),
-                                                                 row=0, column=0, **layout)
+                                                                 button_config=dict(bg='lightgreen', height=3, width=30),
+                                                                 row=1, column=0, **layout)
 
-        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=2, column=0, **layout)
-        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=3, column=0, **layout)
-        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=4, column=0, **layout)
-        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=5, column=0, **layout)
-        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=6, column=0, **layout)
-        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=7, column=0, **layout)
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=2, column=0, **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=3, column=0, **layout)
+        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=4, column=0, **layout)
+        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=5, column=0, **layout)
+        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=6, column=0, **layout)
+        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=7, column=0, **layout)
+        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=8, column=0, **layout)
 
         self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
         self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
@@ -251,7 +260,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Store selection
-        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'platform_credentials_path']
+        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'platform_credentials_path', "use_platform"]
         self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
 
     def _clear_metadata_fields(self) -> None:
@@ -271,6 +280,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
     def _temp(self, dummy):
         print_subscribers()
+
+    def _check_use_platform(self, *args):
+        if plugins.platform_info:
+            self._components["use_platform"].set_state(tk.NORMAL)
+        else:
+            self._components["use_platform"].set(False)
+            self._components["use_platform"].set_state(tk.DISABLED)
+        self._components["platform"].set_title(self.platform_button_text)
 
     def _missing_input(self, missing):
         for key in missing:
@@ -548,8 +565,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['station'].set('')
         self._components['depth'].set('')
         self._components['depth'].water_depth = ''
+
+        self._components['series'].set("")
+        self._components['event_id'].set("")
+        self._components['parent_event_id'].set("")
+
         self._frame_auto_fire.clear_frame()
-        # self._components['series'].increase()
 
     def _program_is_running(self, program):
         for p in psutil.process_iter():
@@ -588,8 +609,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             return False
 
     def _on_return_load_platform_info(self, *args):
-        if not plugins.platform_info:
-            data = plugins.get_current_platform_data()
+        if not plugins.platform_info or not self._components["use_platform"].value:
+            data = plugins.get_current_platform_data(default=True)
             self._set_event_id(data)
             self._set_parent_event_id(data)
             return
@@ -700,10 +721,12 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         except Exception as e:
             if plugins.platform_info_exceptions and isinstance(e, plugins.platform_info_exceptions.PlatformException):
-                messagebox.showerror('Load information from Platform', str(e))
+                messagebox.showerror(f'Load information from platform '
+                                     f'({plugins.get_platform_info().get("platform_name", "unknown name")})', str(e))
                 return
             logger.critical(traceback.format_exc())
-            messagebox.showerror('Could not load information from Platform', traceback.format_exc())
+            messagebox.showerror(f'Could not load information from platform '
+                                 f'({plugins.get_platform_info().get("platform_name", "unknown name")})', traceback.format_exc())
             raise
 
         # except platform_exceptions.PlatformConnectionError as e:
@@ -1585,6 +1608,7 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
         subscribe('focus_out_cruise', self._update_data_file_info)
         subscribe('load_platform_info', self._update_data_file_info)
         subscribe('update_server_info', self._update_data_file_info)
+        subscribe('close_seasave', self.default_user_frame.trigger_select)
 
     def _build_frame(self):
 

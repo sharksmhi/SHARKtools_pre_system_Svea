@@ -18,6 +18,7 @@ class EventTypes:
                 'change_config_path',
                 'change_data_path_local',
                 'change_data_path_server',
+                'toggle_use_platform',
                 'button_platform',
                 'button_seasave',
                 'focus_out_series',

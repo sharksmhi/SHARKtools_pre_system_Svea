@@ -13,6 +13,7 @@ class Translator:
              'position': 'Position',
              'event_id': 'EventID      ',
              'parent_event_id': 'ParentEventID',
+             'use_platform': 'Använd platformsinformation',
 
              'mprog':   'Övervakningsprogram',
              'proj':    'Projekt',

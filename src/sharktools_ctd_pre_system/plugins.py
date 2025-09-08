@@ -17,11 +17,11 @@ def get_platform_info(**kwargs) -> dict:
     return data
 
 
-def get_current_platform_data(**kwargs) -> dict:
+def get_current_platform_data(default=False, **kwargs) -> dict:
     data = dict(
         event_id=str(uuid.uuid4()),
         parent_event_id=str(uuid.uuid4()),
     )
-    if platform_info:
+    if not default and platform_info:
         data.update(platform_info.get_current_data(**kwargs))
     return data
