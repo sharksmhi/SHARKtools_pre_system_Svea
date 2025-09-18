@@ -1,42 +1,57 @@
 import datetime
+import logging
+import os
 import pathlib
+import subprocess
+import sys
 import threading
 import time
 import tkinter as tk
 import traceback
+import uuid
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
-import logging
-import collections
-from sharktools_ctd_pre_system import plugins
-import uuid
 
 import psutil
-from ..options import get_options
+from ctd_pre_system import exceptions as pre_system_exceptions
 from shark_tkinter_lib import tkinter_widgets as tkw
 
+from sharktools_ctd_pre_system import plugins
+from sharktools_ctd_pre_system.gui import auto_fire
 from . import components
 from .. import lists
 from ..events import post_event
 from ..events import print_subscribers
 from ..events import subscribe
 from ..gui.translator import Translator
+from ..options import get_options
 from ..saves import Defaults
 from ..saves import SaveSelection
-from ctd_pre_system import exceptions as pre_system_exceptions
-from sharktools_ctd_pre_system.gui import auto_fire
-
 
 logger = logging.getLogger(__file__)
 
+
 TEXT_LJUST = 10
+
+BTN_COLOR_PLATFORM_PRESENT = "lightgreen"
+BTN_COLOR_PLATFORM_NOT_PRESENT = "yellow"
 
 translator = Translator()
 
 options = get_options()
 
 SHIP_TO_INTERNAL = {'77SE': '7710'}
+
+
+def open_file_or_directory(file_name):
+    match sys.platform:
+        case "win32":
+            os.startfile(file_name)
+        case "darwin":
+            subprocess.call(["open", file_name])
+        case _:
+            subprocess.call(["xdg-open", file_name])
 
 
 class MissingInformationError(Exception):
@@ -47,7 +62,8 @@ class MissingInformationError(Exception):
 
 class ColoredFrame(tk.Frame):
     def __init__(self, parent):
-        super().__init__(parent, highlightbackground=None, highlightcolor=None, highlightthickness=1)
+        super().__init__(parent, highlightbackground=None, highlightcolor=None,
+                         highlightthickness=1)
 
     def set_frame_color(self, color):
         self.config(highlightbackground=color, highlightcolor=color)
@@ -116,7 +132,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('button_seasave', self._on_return_seasave)
 
         subscribe('button_goto_processing_simple', self._on_return_goto_processing_simple)
-        subscribe('button_goto_processing_advanced', self._on_return_goto_processing_advanced)
+        subscribe('button_goto_processing_advanced',
+                  self._on_return_goto_processing_advanced)
 
         subscribe('missing_input', self._missing_input)
         subscribe('input_ok', self._input_ok)
@@ -143,7 +160,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
     def update_frame(self):
         self._clear_metadata_fields()
         self._frame_metadata_conditions.update_frame()
-        self._set_next_series()
+        # self._set_next_series()
 
     @property
     def platform_button_text(self) -> str:
@@ -173,9 +190,13 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         frame_metadata = tk.Frame(frame)
         frame_metadata.grid(row=0, column=4, sticky='ns')
 
-        self._frame_metadata_admin = MetadataAdminFrame(frame_metadata, self.controller, row=0, column=0, sticky='ns')
-        ttk.Separator(frame_metadata, orient='horizontal').grid(row=1, column=0, sticky='ew')
-        self._frame_metadata_conditions = MetadataConditionsFrame(frame_metadata, self.controller, row=2, column=0, sticky='ns')
+        self._frame_metadata_admin = MetadataAdminFrame(frame_metadata, self.controller,
+                                                        row=0, column=0, sticky='ns')
+        ttk.Separator(frame_metadata, orient='horizontal').grid(row=1, column=0,
+                                                                sticky='ew')
+        self._frame_metadata_conditions = MetadataConditionsFrame(frame_metadata,
+                                                                  self.controller, row=2,
+                                                                  column=0, sticky='ns')
 
         # self._frame_metadata_admin = MetadataAdminFrame(frame, self.controller, row=0, column=4, sticky='ns')
 
@@ -183,8 +204,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         # self._frame_metadata_conditions = MetadataConditionsFrame(frame, self.controller, row=0, column=6, sticky='ns')
 
-        #self._frame_auto_fire = FrameAutoFireTable(frame, self.controller, self, row=0, column=6)
-        self._frame_auto_fire = auto_fire.FrameAutoFire(frame, self.controller, self, row=0, column=6)
+        # self._frame_auto_fire = FrameAutoFireTable(frame, self.controller, self, row=0, column=6)
+        self._frame_auto_fire = auto_fire.FrameAutoFire(frame, self.controller, self,
+                                                        row=0, column=6)
 
         frame_bottom = tk.Frame(frame)
         frame_bottom.grid(row=1, column=0, columnspan=7)
@@ -194,46 +216,118 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components = {}
         self._components["use_platform"] = components.LabelCheckbox(frame_left,
                                                                     "use_platform",
-                                                                    title=translator.get_readable('use_platform'),
-                                                                    row=0, column=0, **layout)
+                                                                    title=translator.get_readable(
+                                                                        'use_platform'),
+                                                                    #hard_press=True,
+                                                                    row=0, column=0,
+                                                                    **layout)
         self._components['platform'] = components.CallbackButton(frame_left,
                                                                  'platform',
                                                                  title=self.platform_button_text,
-                                                                 button_config=dict(bg='lightgreen', height=3, width=30),
-                                                                 row=1, column=0, **layout)
+                                                                 button_config=dict(
+                                                                     bg=BTN_COLOR_PLATFORM_PRESENT,
+                                                                     height=3, width=30),
+                                                                 row=1, column=0,
+                                                                 **layout)
 
-        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left, 'cruise', title=translator.get_readable('cruise').ljust(TEXT_LJUST), row=2, column=0, **layout)
-        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series', title=translator.get_readable('series'), row=3, column=0, **layout)
-        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail', title=translator.get_readable('tail'), row=4, column=0, **layout)
-        self._components['station'] = components.LabelDropdownList(frame_left, 'station', title=translator.get_readable('station'), width=30, autocomplete=True, row=5, column=0, **layout)
-        self._components['distance'] = components.LabelEntry(frame_left, 'distance',  title=translator.get_readable('distance').ljust(TEXT_LJUST), state='disabled', data_type=int, row=6, column=0, **layout)
-        self._components['depth'] = components.DepthEntry(frame_left, 'depth', title=translator.get_readable('depth').ljust(TEXT_LJUST), data_type=int, row=7, column=0, **layout)
-        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size', title=translator.get_readable('bin_size').ljust(TEXT_LJUST), data_type=int, row=8, column=0, **layout)
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame_left,
+                                                                       'cruise',
+                                                                       title=translator.get_readable(
+                                                                           'cruise').ljust(
+                                                                           TEXT_LJUST),
+                                                                       row=2, column=0,
+                                                                       **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame_left, 'series',
+                                                                  title=translator.get_readable(
+                                                                      'series'), row=3,
+                                                                  column=0, **layout)
+        self._components['tail'] = components.LabelCheckbox(frame_left, 'tail',
+                                                            title=translator.get_readable(
+                                                                'tail'), row=4, column=0,
+                                                            **layout)
+        self._components['station'] = components.LabelDropdownList(frame_left, 'station',
+                                                                   title=translator.get_readable(
+                                                                       'station'),
+                                                                   width=30,
+                                                                   autocomplete=True,
+                                                                   row=5, column=0,
+                                                                   **layout)
+        self._components['distance'] = components.LabelEntry(frame_left, 'distance',
+                                                             title=translator.get_readable(
+                                                                 'distance').ljust(
+                                                                 TEXT_LJUST),
+                                                             state='disabled',
+                                                             data_type=int, row=6,
+                                                             column=0, **layout)
+        self._components['depth'] = components.DepthEntry(frame_left, 'depth',
+                                                          title=translator.get_readable(
+                                                              'depth').ljust(TEXT_LJUST),
+                                                          data_type=int, row=7, column=0,
+                                                          **layout)
+        self._components['bin_size'] = components.LabelEntry(frame_left, 'bin_size',
+                                                             title=translator.get_readable(
+                                                                 'bin_size').ljust(
+                                                                 TEXT_LJUST),
+                                                             data_type=int, row=8,
+                                                             column=0, **layout)
 
-        self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right, 'vessel', title=translator.get_readable('vessel').ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._components['operator'] = components.LabelDropdownList(frame_right, 'operator', title=translator.get_readable('operator').ljust(TEXT_LJUST), row=1, column=0, **layout)
+        self._components['vessel'] = components.VesselLabelDoubleEntry(frame_right,
+                                                                       'vessel',
+                                                                       title=translator.get_readable(
+                                                                           'vessel').ljust(
+                                                                           TEXT_LJUST),
+                                                                       row=0, column=0,
+                                                                       **layout)
+        self._components['operator'] = components.LabelDropdownList(frame_right,
+                                                                    'operator',
+                                                                    title=translator.get_readable(
+                                                                        'operator').ljust(
+                                                                        TEXT_LJUST),
+                                                                    row=1, column=0,
+                                                                    **layout)
 
         pos_frame = tk.Frame(frame_right)
         pos_frame.grid(row=2, column=0, **layout)
-        self._components['position'] = components.PositionEntries(pos_frame, 'position', row=0, column=0,
-                                                                  lat_text='Lat (nom)', lon_text='Lon (nom)',
+        self._components['position'] = components.PositionEntries(pos_frame, 'position',
+                                                                  row=0, column=0,
+                                                                  lat_text='Lat (nom)',
+                                                                  lon_text='Lon (nom)',
                                                                   info_text='', **layout)
         ttk.Separator(pos_frame, orient='vertical').grid(row=0, column=1, sticky='ns')
-        self._components['platform_position'] = components.PositionEntries(pos_frame, 'platform_position', row=0, column=2,
-                                                                        lat_text='Platform lat', lon_text='Platform lon',
-                                                                        info_text='',
-                                                                        **layout)
+        self._components['platform_position'] = components.PositionEntries(pos_frame,
+                                                                           'platform_position',
+                                                                           row=0,
+                                                                           column=2,
+                                                                           lat_text='Platform lat',
+                                                                           lon_text='Platform lon',
+                                                                           info_text='',
+                                                                           **layout)
 
-        self._components['add_samp'] = components.AddSampInfo(frame_right, 'add_samp', row=3, column=0, **layout)
-        self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',  title=translator.get_readable('event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=4, column=0, **layout)
-        self._components['parent_event_id'] = components.LabelEntry(frame_right, 'parent_event_id',  title=translator.get_readable('parent_event_id').ljust(TEXT_LJUST), width=37, state='disabled', data_type=str, row=5, column=0, **layout)
+        self._components['add_samp'] = components.AddSampInfo(frame_right, 'add_samp',
+                                                              row=3, column=0, **layout)
+        self._components['event_id'] = components.LabelEntry(frame_right, 'event_id',
+                                                             title=translator.get_readable(
+                                                                 'event_id').ljust(
+                                                                 TEXT_LJUST), width=37,
+                                                             state='disabled',
+                                                             data_type=str, row=4,
+                                                             column=0, **layout)
+        self._components['parent_event_id'] = components.LabelEntry(frame_right,
+                                                                    'parent_event_id',
+                                                                    title=translator.get_readable(
+                                                                        'parent_event_id').ljust(
+                                                                        TEXT_LJUST),
+                                                                    width=37,
+                                                                    state='disabled',
+                                                                    data_type=str, row=5,
+                                                                    column=0, **layout)
 
-        self._components['platform_credentials_path'] = components.FilePathButtonText(frame_bottom,
-                                                                                   'platform_credentials_path',
-                                                                                   title='Sökväg till inloggningsuppgifter till platform',
-                                                                                   row=0, column=0,
-                                                                                   columnspan=4, **layout)
-
+        self._components['platform_credentials_path'] = components.FilePathButtonText(
+            frame_bottom,
+            'platform_credentials_path',
+            title='Sökväg till inloggningsuppgifter till platform',
+            row=0, column=0,
+            columnspan=4, **layout)
 
         # self._bool_load_platform_info_automatic = tk.BooleanVar()
         # self._bool_load_platform_info_automatic.set(False)
@@ -243,25 +337,30 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         # self._components['validate'] = components.CallbackButton(frame_bottom, 'validate', title='Validera', row=0, column=1, **layout)
         # self._components['validate'].button.config(state='disabled')
 
-        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave', title='Starta Seasave',
+        self._components['seasave'] = components.CallbackButton(frame_bottom, 'seasave',
+                                                                title='Starta Seasave',
                                                                 row=1, column=1, **layout)
         self._components['seasave'].button.config(bg='#6691bd')
-        self._components['goto_processing_simple'] = components.CallbackButton(frame_bottom,
-                                                                               'goto_processing_simple', title='Gå till enkel processering', row=1,
-                                                                 column=2, **layout)
-        self._components['goto_processing_advanced'] = components.CallbackButton(frame_bottom, 'goto_processing_advanced',
-                                                                               title='Gå till avancerad processering',
-                                                                               row=1,
-                                                                               column=3, **layout)
+        self._components['goto_processing_simple'] = components.CallbackButton(
+            frame_bottom,
+            'goto_processing_simple', title='Gå till enkel processering', row=1,
+            column=2, **layout)
+        self._components['goto_processing_advanced'] = components.CallbackButton(
+            frame_bottom, 'goto_processing_advanced',
+            title='Gå till avancerad processering',
+            row=1,
+            column=3, **layout)
         # self._components['validate'].button.config(state='disabled')
 
-        tkw.grid_configure(frame_left, nr_rows=6)
+        tkw.grid_configure(frame_left, nr_rows=9)
         tkw.grid_configure(frame_right, nr_rows=4)
         tkw.grid_configure(frame_bottom, nr_columns=3)
 
         # Store selection
-        to_store = ['cruise', 'operator', 'vessel', 'bin_size', 'platform_credentials_path', "use_platform"]
-        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
+        to_store = ['cruise', 'operator', 'vessel', 'bin_size',
+                    'platform_credentials_path', "use_platform", ]
+        self._selections_to_store = {key: comp for key, comp in self._components.items()
+                                     if key in to_store}
 
     def _clear_metadata_fields(self) -> None:
         self._components['position'].lat = ''
@@ -287,7 +386,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         else:
             self._components["use_platform"].set(False)
             self._components["use_platform"].set_state(tk.DISABLED)
+        if self._components['use_platform'].value:
+            self._components["platform"].set_color(BTN_COLOR_PLATFORM_PRESENT)
+        else:
+            self._components["platform"].set_color(BTN_COLOR_PLATFORM_NOT_PRESENT)
+
         self._components["platform"].set_title(self.platform_button_text)
+        self._components['series'].set("")
+        self._components['event_id'].set("")
+        self._components['parent_event_id'].set("")
 
     def _missing_input(self, missing):
         for key in missing:
@@ -305,14 +412,14 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['station'].values = self.get_station_list()
         self._components['operator'].values = self.get_operator_list()
 
-    def get_latest_file(self, server=False):
-        kwargs = {'server': server,
-                  'year': self._components['cruise'].year,
-                  'ship': self._components['vessel'].code,
-                  'cruise': self._components['cruise'].nr}
-        print('frames.get_latest_file kwargs', kwargs)
-        latest_series_path = self.controller.get_latest_series_path(**kwargs)
-        return latest_series_path
+    # def get_latest_file(self, server=False):
+    #     kwargs = {'server': server,
+    #               'year': self._components['cruise'].year,
+    #               'ship': self._components['vessel'].code,
+    #               'cruise': self._components['cruise'].nr}
+    #     print('frames.get_latest_file kwargs', kwargs)
+    #     latest_series_path = self.controller.get_latest_series_path(**kwargs)
+    #     return latest_series_path
 
     def get_current_file(self):
         tail = None
@@ -349,7 +456,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self._components['depth'].water_depth = ''
             self._components['distance'].value = ''
             return
-        self._components['station'].value = station_info.get('station')  # Could have been a synonym
+        self._components['station'].value = station_info.get(
+            'station')  # Could have been a synonym
         self._components['position'].lat = station_info.get('lat', '')
         self._components['position'].lon = station_info.get('lon', '')
         self._components['depth'].water_depth = str(station_info.get('depth'))
@@ -388,8 +496,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self._components['distance'].value = ''
             return False
         if station_info['acceptable']:
-            ok = messagebox.askyesno('Station hittad', f'Positionen ({lat}, {lon}) matchar station: {station_info.get("station", "<No name>")}\n'
-                                                       f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.')
+            ok = messagebox.askyesno('Station hittad',
+                                     f'Positionen ({lat}, {lon}) matchar station: {station_info.get("station", "<No name>")}\n'
+                                     f'Avståndet till stationen är: {station_info.get("distance", "Oklart")} meter.')
             self._components['station'].value = station_info.get('station', '')
             self._components['depth'].water_depth = station_info.get('depth', '')
             self._components['distance'].value = station_info.get('distance', '')
@@ -478,17 +587,20 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         metadata_conditions.pop('wadep_bot', None)
 
         missing = []
-        for key in ['depth', 'bin_size', 'cruise', 'vessel', 'series', 'station', 'operator']:
+        for key in ['depth', 'bin_size', 'cruise', 'vessel', 'series', 'station',
+                    'operator']:
             if not data.get(key):
                 missing.append(key)
 
         missing.extend([key for key, value in metadata_admin.items() if not value])
-        missing.extend([key for key, value in metadata_conditions.items() if not value and key not in ['comment', 'comnt_visit', 'wadep_bot']])
+        missing.extend([key for key, value in metadata_conditions.items() if
+                        not value and key not in ['comment', 'comnt_visit', 'wadep_bot']])
 
         post_event('input_ok', missing)
         if missing:
             post_event('missing_input', missing)
-            raise MissingInformationError(missing_list=[translator.get_readable(item) for item in missing])
+            raise MissingInformationError(
+                missing_list=[translator.get_readable(item) for item in missing])
 
         data['nr_bins'] = int(float(data['depth']) / float(data['bin_size']))
         data['instrument'] = self.instrument
@@ -511,24 +623,36 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self.controller.set_auto_fire(self._frame_auto_fire.enable_auto_fire)
         self.controller.auto_fire_min_pressure_or_depth = self._frame_auto_fire.auto_fire_min_pressure_or_depth
         # self.controller.set_auto_fire_bottles(auto_fire_data, self.station)
-        self.controller.set_auto_fire_bottles(auto_fire_data, basin=self._frame_auto_fire.current_basin)
+        self.controller.set_auto_fire_bottles(auto_fire_data,
+                                              basin=self._frame_auto_fire.current_basin)
 
         # Update
         meta_admin = {key.upper(): value for key, value in metadata_admin.items()}
         meta_cond = {key.upper(): value for key, value in metadata_conditions.items()}
-        self.controller.update_main_psa_file(**data, metadata_admin=meta_admin, metadata_conditions=meta_cond, source_dir=True, check_serno=True)
+        self.controller.update_main_psa_file(**data, metadata_admin=meta_admin,
+                                             metadata_conditions=meta_cond,
+                                             source_dir=True, check_serno=True)
 
     def _on_return_seasave(self, *args):
-        self._components['station'].value = self._components['station'].value.replace(',', '.')
+        self._components['station'].value = self._components['station'].value.replace(',',
+                                                                                      '.')
         self._components['station'].update()
         post_event('update_components', None)
         if not self._components['event_id'].value:
-            messagebox.showerror('Inget EventID', 'EventID saknas. Ladda platformsinformation eller generera ID')
+            messagebox.showerror('Inget EventID',
+                                 'EventID saknas. Ladda platformsinformation eller generera ID')
             return
         if self._components['tail'].value:
             ans = messagebox.askyesno('Skapar testfil', 'Vill du skapa en testfil?')
             if not ans:
                 return
+        # if self.controller.series_exists_is_source_folder(
+        #         year=self._components["cruise"].year,
+        #         serno=self._components["series"].value,
+        # ):
+        #     messagebox.showerror(f'Serie finns redan!',
+        #                          'En fil med samma serie och år finns redan i målmappen')
+        #     return
         self._run_seasave()
 
     def _on_return_goto_processing_simple(self, *args):
@@ -551,13 +675,15 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                                        )
         except MissingInformationError as e:
             missing_string = '\n'.join(e.missing_list)
-            messagebox.showerror('Run seasave', f'Kan inte köra Seasave!\nFöljande information saknas:\n\n{missing_string}')
+            messagebox.showerror('Run seasave',
+                                 f'Kan inte köra Seasave!\nFöljande information saknas:\n\n{missing_string}')
             return
         except ChildProcessError:
             messagebox.showerror('Run seasave', 'Det körs redan en instans av Seasave!')
         except Exception as e:
-            sep = '-'*70
-            messagebox.showerror('Run seasave', f'Något gick fel!\n{sep}\n{e}\n\n{sep}\n{traceback.format_exc()}')
+            sep = '-' * 70
+            messagebox.showerror('Run seasave',
+                                 f'Något gick fel!\n{sep}\n{e}\n\n{sep}\n{traceback.format_exc()}')
             raise
 
     def _on_close_seasave(self):
@@ -578,7 +704,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
                 return True
         return False
 
-    def _time_disabled_widget(self, widget, seconds=None, program_running='', then_run=None):
+    def _time_disabled_widget(self, widget, seconds=None, program_running='',
+                              then_run=None):
         def sub_func():
             widget.config(state='disabled')
             if seconds:
@@ -613,6 +740,9 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             data = plugins.get_current_platform_data(default=True)
             self._set_event_id(data)
             self._set_parent_event_id(data)
+            self._components["series"].value = (
+                self.controller.get_next_series_in_source_folder())
+            post_event('load_platform_info', data)
             return
         try:
             cred_path = self._components['platform_credentials_path'].get()
@@ -639,11 +769,11 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             self._components['series'].value = series
             self._components['cruise'].nr = cruise
             self._components['add_samp'].value = add_samp
-            #self._components['depth'].value = depth
-            #self._components['operator'].value = operator
+            # self._components['depth'].value = depth
+            # self._components['operator'].value = operator
             self._components['platform_position'].lat = lat
             self._components['platform_position'].lon = lon
-            #self._components['station'].value = station
+            # self._components['station'].value = station
             self._components['vessel'].name = vessel_name
             self._components['vessel'].code = vessel_code
 
@@ -672,11 +802,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             # if vessel_code:
             #     self._components['vessel'].code = vessel_code
 
-
-
-
-
-
             # self._components['series'].value = str(data.get('series', ''))
             # self._components['cruise'].nr = str(data.get('cruise_nr', ''))
             #
@@ -694,11 +819,6 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             # self._components['vessel'].name = str(data.get('ship_name', ''))
             # self._components['vessel'].code = str(data.get('ship_code', ''))
 
-
-
-
-
-
             # self._components['series'].value = data['parent_event_info'].get('counter', '')
             # self._components['cruise'].nr = data['trip_info'].get('counter', '')
             #
@@ -707,7 +827,7 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             # self._components['platform_position'].lat = lat
             # self._components['platform_position'].lon = lon
 
-            #self._calculate_distance_to_platform_pos()
+            # self._calculate_distance_to_platform_pos()
 
             # ok = self._on_return_position([lat, lon])
             # if ok:
@@ -720,13 +840,16 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
             post_event('load_platform_info', data)
 
         except Exception as e:
-            if plugins.platform_info_exceptions and isinstance(e, plugins.platform_info_exceptions.PlatformException):
+            if plugins.platform_info_exceptions and isinstance(e,
+                                                               plugins.platform_info_exceptions.PlatformException):
                 messagebox.showerror(f'Load information from platform '
-                                     f'({plugins.get_platform_info().get("platform_name", "unknown name")})', str(e))
+                                     f'({plugins.get_platform_info().get("platform_name", "unknown name")})',
+                                     str(e))
                 return
             logger.critical(traceback.format_exc())
             messagebox.showerror(f'Could not load information from platform '
-                                 f'({plugins.get_platform_info().get("platform_name", "unknown name")})', traceback.format_exc())
+                                 f'({plugins.get_platform_info().get("platform_name", "unknown name")})',
+                                 traceback.format_exc())
             raise
 
         # except platform_exceptions.PlatformConnectionError as e:
@@ -747,7 +870,8 @@ class StationPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components['event_id'].value = data.get('event_id', str(uuid.uuid4()))
 
     def _set_parent_event_id(self, data):
-        self._components['parent_event_id'].value = data.get('parent_event_id', str(uuid.uuid4()))
+        self._components['parent_event_id'].value = data.get('parent_event_id',
+                                                             str(uuid.uuid4()))
 
 
 class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
@@ -792,18 +916,48 @@ class MetadataAdminFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         width = 15
 
         self._components = {}
-        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog', title=translator.get_readable('mprog').ljust(text_ljust), width=width, row=0, column=0, **layout)
-        self._components['proj'] = components.LabelDropdownList(frame, 'proj', title=translator.get_readable('proj').ljust(text_ljust), width=width, row=1, column=0, **layout)
-        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer', title=translator.get_readable('orderer').ljust(text_ljust), width=width, row=2, column=0, **layout)
-        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo', title=translator.get_readable('slabo').ljust(text_ljust), width=width, row=3, column=0, **layout)
-        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo', title=translator.get_readable('alabo').ljust(text_ljust), width=width, row=4, column=0, **layout)
-        self._components['refsk'] = components.LabelEntry(frame, 'refsk', title=translator.get_readable('refsk').ljust(text_ljust), state='disabled', width=24, row=5, column=0, **layout)
+        self._components['mprog'] = components.LabelDropdownList(frame, 'mprog',
+                                                                 title=translator.get_readable(
+                                                                     'mprog').ljust(
+                                                                     text_ljust),
+                                                                 width=width, row=0,
+                                                                 column=0, **layout)
+        self._components['proj'] = components.LabelDropdownList(frame, 'proj',
+                                                                title=translator.get_readable(
+                                                                    'proj').ljust(
+                                                                    text_ljust),
+                                                                width=width, row=1,
+                                                                column=0, **layout)
+        self._components['orderer'] = components.LabelDropdownList(frame, 'orderer',
+                                                                   title=translator.get_readable(
+                                                                       'orderer').ljust(
+                                                                       text_ljust),
+                                                                   width=width, row=2,
+                                                                   column=0, **layout)
+        self._components['slabo'] = components.LabelDropdownList(frame, 'slabo',
+                                                                 title=translator.get_readable(
+                                                                     'slabo').ljust(
+                                                                     text_ljust),
+                                                                 width=width, row=3,
+                                                                 column=0, **layout)
+        self._components['alabo'] = components.LabelDropdownList(frame, 'alabo',
+                                                                 title=translator.get_readable(
+                                                                     'alabo').ljust(
+                                                                     text_ljust),
+                                                                 width=width, row=4,
+                                                                 column=0, **layout)
+        self._components['refsk'] = components.LabelEntry(frame, 'refsk',
+                                                          title=translator.get_readable(
+                                                              'refsk').ljust(text_ljust),
+                                                          state='disabled', width=24,
+                                                          row=5, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=5)
 
         # Store selection
         to_store = ['mprog', 'proj', 'orderer', 'slabo', 'alabo', 'refsk']
-        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
+        self._selections_to_store = {key: comp for key, comp in self._components.items()
+                                     if key in to_store}
 
     def _initiate_frame(self):
         for key, comp in self._components.items():
@@ -855,7 +1009,7 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         subscribe('select_default_user', self._on_change_default_user)
         subscribe('set_water_depth', self._on_set_water_depth)
         subscribe('close_seasave', self._on_close_seasave)
-        subscribe('load_platform_info', self.update_load_platform_info)
+        # subscribe('load_platform_info', self.update_load_platform_info)
 
         self._build_frame()
 
@@ -878,48 +1032,91 @@ class MetadataConditionsFrame(tk.Frame, SaveSelection, CommonFrameMethods):
         self._components = {}
 
         self._components['wadep_bot'] = components.LabelLabel(frame, 'wadep_bot',
-                                                              title=translator.get_readable('wadep_bot').ljust(
+                                                              title=translator.get_readable(
+                                                                  'wadep_bot').ljust(
                                                                   text_ljust),
                                                               row=0, column=0, **layout)
 
         self._components['wadep'] = components.IntEntry(frame, 'wadep',
-                                                        title=translator.get_readable('wadep').ljust(text_ljust),
-                                                        min_value=options.get('wadep').get('min'),
-                                                        max_value=options.get('wadep').get('max'), row=1, column=0,
+                                                        title=translator.get_readable(
+                                                            'wadep').ljust(text_ljust),
+                                                        min_value=options.get(
+                                                            'wadep').get('min'),
+                                                        max_value=options.get(
+                                                            'wadep').get('max'), row=1,
+                                                        column=0,
                                                         **layout)
 
         self._components['winsp'] = components.FloatEntry(frame, 'winsp',
-                                                          title=translator.get_readable('winsp').ljust(text_ljust),
-                                                          min_value=options.get('winsp').get('min'),
-                                                          max_value=options.get('winsp').get('max'), row=2, column=0,
+                                                          title=translator.get_readable(
+                                                              'winsp').ljust(text_ljust),
+                                                          min_value=options.get(
+                                                              'winsp').get('min'),
+                                                          max_value=options.get(
+                                                              'winsp').get('max'), row=2,
+                                                          column=0,
                                                           **layout)
 
         self._components['windir'] = components.LabelDropdownList(frame, 'windir',
-                                                                  title=translator.get_readable('windir').ljust(text_ljust),
-                                                                  row=3, column=0, **layout)
+                                                                  title=translator.get_readable(
+                                                                      'windir').ljust(
+                                                                      text_ljust),
+                                                                  row=3, column=0,
+                                                                  **layout)
         self._components['airpres'] = components.FloatEntry(frame, 'airpres',
-                                                            title=translator.get_readable('airpres').ljust(text_ljust),
-                                                            min_value=options.get('airpres').get('min'),
-                                                            max_value=options.get('airpres').get('max'), row=4,
+                                                            title=translator.get_readable(
+                                                                'airpres').ljust(
+                                                                text_ljust),
+                                                            min_value=options.get(
+                                                                'airpres').get('min'),
+                                                            max_value=options.get(
+                                                                'airpres').get('max'),
+                                                            row=4,
                                                             column=0, **layout)
 
         self._components['airtemp'] = components.FloatEntry(frame, 'airtemp',
-                                                            title=translator.get_readable('airtemp').ljust(text_ljust),
-                                                            min_value=options.get('airtemp').get('min'),
-                                                            max_value=options.get('airtemp').get('max'),
+                                                            title=translator.get_readable(
+                                                                'airtemp').ljust(
+                                                                text_ljust),
+                                                            min_value=options.get(
+                                                                'airtemp').get('min'),
+                                                            max_value=options.get(
+                                                                'airtemp').get('max'),
                                                             row=5, column=0, **layout)
-        self._components['weath'] = components.LabelDropdownList(frame, 'weath', title=translator.get_readable('weath').ljust(text_ljust), row=6, column=0, **layout)
-        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud', title=translator.get_readable('cloud').ljust(text_ljust), row=7, column=0, **layout)
-        self._components['waves'] = components.LabelDropdownList(frame, 'waves', title=translator.get_readable('waves').ljust(text_ljust), row=8, column=0, **layout)
-        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob', title=translator.get_readable('iceob').ljust(text_ljust), row=9, column=0, **layout)
-        self._components['comnt_visit'] = components.LabelEntry(frame, 'comment', title=translator.get_readable('comment').ljust(5), width=30, row=10, column=0, **layout)
+        self._components['weath'] = components.LabelDropdownList(frame, 'weath',
+                                                                 title=translator.get_readable(
+                                                                     'weath').ljust(
+                                                                     text_ljust), row=6,
+                                                                 column=0, **layout)
+        self._components['cloud'] = components.LabelDropdownList(frame, 'cloud',
+                                                                 title=translator.get_readable(
+                                                                     'cloud').ljust(
+                                                                     text_ljust), row=7,
+                                                                 column=0, **layout)
+        self._components['waves'] = components.LabelDropdownList(frame, 'waves',
+                                                                 title=translator.get_readable(
+                                                                     'waves').ljust(
+                                                                     text_ljust), row=8,
+                                                                 column=0, **layout)
+        self._components['iceob'] = components.LabelDropdownList(frame, 'iceob',
+                                                                 title=translator.get_readable(
+                                                                     'iceob').ljust(
+                                                                     text_ljust), row=9,
+                                                                 column=0, **layout)
+        self._components['comnt_visit'] = components.LabelEntry(frame, 'comment',
+                                                                title=translator.get_readable(
+                                                                    'comment').ljust(5),
+                                                                width=30, row=10,
+                                                                column=0, **layout)
         # Försystem: ändra ordning i högerkolumnen till: bottendjup – vind hast – riktning – lufttryck – temp. Så stämmer det med ordnignen på protokollet
 
         tkw.grid_configure(frame, nr_rows=11)
 
         # Store selection
-        to_store = ['windir', 'winsp', 'airtemp', 'airpres', 'weath', 'cloud', 'waves', 'iceob']
-        self._selections_to_store = {key: comp for key, comp in self._components.items() if key in to_store}
+        to_store = ['windir', 'winsp', 'airtemp', 'airpres', 'weath', 'cloud', 'waves',
+                    'iceob']
+        self._selections_to_store = {key: comp for key, comp in self._components.items()
+                                     if key in to_store}
 
     def _on_close_seasave(self, *args):
         self._components['wadep_bot'].set('')
@@ -1001,13 +1198,31 @@ class TransectPreSystemFrame(tk.Frame, SaveSelection, CommonFrameMethods):
 
         layout = dict(padx=5, pady=5, sticky='nw')
 
-        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame, title='Cruise'.ljust(TEXT_LJUST), row=0, column=0, **layout)
-        self._components['series'] = components.SeriesEntryPicker(frame, title='Series'.ljust(TEXT_LJUST), row=1, column=0, **layout)
-        self._transect = components.LabelDropdownList(frame, 'transect',  title='Transect'.ljust(TEXT_LJUST), width=15, row=2, column=0, **layout)
-        self._components['operator'] = components.LabelDropdownList(frame, 'operator', title='Operator'.ljust(TEXT_LJUST), row=4, column=0, **layout)
+        self._components['cruise'] = components.CruiseLabelDoubleEntry(frame,
+                                                                       title='Cruise'.ljust(
+                                                                           TEXT_LJUST),
+                                                                       row=0, column=0,
+                                                                       **layout)
+        self._components['series'] = components.SeriesEntryPicker(frame,
+                                                                  title='Series'.ljust(
+                                                                      TEXT_LJUST), row=1,
+                                                                  column=0, **layout)
+        self._transect = components.LabelDropdownList(frame, 'transect',
+                                                      title='Transect'.ljust(TEXT_LJUST),
+                                                      width=15, row=2, column=0, **layout)
+        self._components['operator'] = components.LabelDropdownList(frame, 'operator',
+                                                                    title='Operator'.ljust(
+                                                                        TEXT_LJUST),
+                                                                    row=4, column=0,
+                                                                    **layout)
 
-        self._components['vessel'] = components.VesselLabelDoubleEntry(frame, title='Vessel'.ljust(TEXT_LJUST), row=0, column=1, **layout)
-        self._new_transect = components.LabelCheckbox(frame, title='New transect'.ljust(TEXT_LJUST), row=1, column=1, **layout)
+        self._components['vessel'] = components.VesselLabelDoubleEntry(frame,
+                                                                       title='Vessel'.ljust(
+                                                                           TEXT_LJUST),
+                                                                       row=0, column=1,
+                                                                       **layout)
+        self._new_transect = components.LabelCheckbox(frame, title='New transect'.ljust(
+            TEXT_LJUST), row=1, column=1, **layout)
 
         tkw.grid_configure(frame, nr_rows=5, nr_columns=2)
 
@@ -1084,24 +1299,32 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
         self._frame_instrument_buttons = FrameInstrumentButtons(self, self.controller)
         self._frame_instrument_buttons.grid(row=0, column=0, **layout)
 
-        self._sensor_table = components.SensorTable(self, self.controller, row=0, column=1, **layout)
+        self._sensor_table = components.SensorTable(self, self.controller, row=0,
+                                                    column=1, **layout)
 
         pump_frame = tk.Frame(self)
         pump_frame.grid(row=0, column=2, sticky='nw')
-        self._pump_1 = components.LabelDropdownList(pump_frame, 'pump1',  title='Primär pump SBE5'.ljust(20), row=0, column=0, **layout)
-        self._pump_2 = components.LabelDropdownList(pump_frame, 'pump2',  title='Sekundär pump SBE5'.ljust(20), row=1, column=0, **layout)
+        self._pump_1 = components.LabelDropdownList(pump_frame, 'pump1',
+                                                    title='Primär pump SBE5'.ljust(20),
+                                                    row=0, column=0, **layout)
+        self._pump_2 = components.LabelDropdownList(pump_frame, 'pump2',
+                                                    title='Sekundär pump SBE5'.ljust(20),
+                                                    row=1, column=0, **layout)
         self._pump_1.values = lists.get_pump_list()
         self._pump_2.values = lists.get_pump_list()
         tkw.grid_configure(pump_frame, nr_rows=2)
 
-        ttk.Separator(self, orient='horizontal').grid(row=1, column=0, columnspan=3, sticky='ew')
+        ttk.Separator(self, orient='horizontal').grid(row=1, column=0, columnspan=3,
+                                                      sticky='ew')
 
         self._frame_info = SelectionInfoFrame(self, self.controller)
         self._frame_info.grid(row=2, column=0, columnspan=3, sticky='nsew')
 
         option_frame = tk.Frame(self)
         option_frame.grid(row=3, column=0, columnspan=2, sticky='e')
-        self.confirm_button = tk.Button(option_frame, text='Jag har kontrollerat sensoruppsättningen!', bg='#6691bd',
+        self.confirm_button = tk.Button(option_frame,
+                                        text='Jag har kontrollerat sensoruppsättningen!',
+                                        bg='#6691bd',
                                         command=self._on_confirm_sensors)
         self.confirm_button.grid(row=0, column=0, sticky='e')
         self.confirm_button.configure(state='disabled')
@@ -1131,10 +1354,12 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
     def _on_confirm_sensors(self, *args):
         # Check that pumps are not the same. Then post event.
         if not (self._pump_1.value and self._pump_2.value):
-            messagebox.showerror('Kontrollera pump-id', 'Information om pump/pumpar saknas')
+            messagebox.showerror('Kontrollera pump-id',
+                                 'Information om pump/pumpar saknas')
             return
         if self._pump_1.value == self._pump_2.value:
-            messagebox.showerror('Kontrollera pump-id', 'Primär och sekundär pump kan inte vara samma')
+            messagebox.showerror('Kontrollera pump-id',
+                                 'Primär och sekundär pump kan inte vara samma')
             return
         post_event('confirm_sensors', self.instrument)
         self._add_components()
@@ -1159,11 +1384,14 @@ class FrameSelectInstrument(tk.Frame, SaveSelection):
             self._sensor_table.reset_data()
             return
 
-        if not all([self._frame_info.config_root_path, self._frame_info.data_root_path_local, self._frame_info.data_root_path_server]):
+        if not all(
+                [self._frame_info.config_root_path, self._frame_info.data_root_path_local,
+                 self._frame_info.data_root_path_server]):
             self._frame_info.reset_info()
             self._sensor_table.reset_data()
             self._frame_instrument_buttons.deselect()
-            messagebox.showwarning('Rotkatalog saknas!', 'Du måste ange rotkatalog för config och data')
+            messagebox.showwarning('Rotkatalog saknas!',
+                                   'Du måste ange rotkatalog för config och data')
             return
         try:
             self._frame_info.update_info(self.instrument)
@@ -1202,6 +1430,7 @@ class DataFileInfoFrame(tk.Frame, SaveSelection):
     """
     Frame to show information about existing and built data file.
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent)
 
@@ -1213,24 +1442,35 @@ class DataFileInfoFrame(tk.Frame, SaveSelection):
         layout = dict(padx=3,
                       pady=3)
 
-        self._stringvar_latest_file = tk.StringVar()
+        # self._stringvar_latest_file = tk.StringVar()
         self._stringvar_current_file = tk.StringVar()
 
         r = 0
-        tk.Label(self, text='Senaste kastet på servern:').grid(row=r, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
+        # tk.Label(self, text='Senaste kastet på servern:').grid(row=r, column=0, sticky='w', **layout)
+        # tk.Label(self, textvariable=self._stringvar_latest_file).grid(row=r, column=1, sticky='w', **layout)
 
-        tk.Button(self, text='Uppdatera', command=lambda: post_event('update_server_info', None)).grid(row=r, column=2, sticky='w', **layout)
+        # tk.Button(self, text='Uppdatera', command=lambda: post_event('update_server_info', None)).grid(row=r, column=2, sticky='w', **layout)
 
-        r += 1
-        tk.Label(self, text='Fil som kommer skapas:').grid(row=r, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_current_file).grid(row=r, column=1, sticky='w', **layout)
+        # r += 1
+        tk.Button(self, text="Öppna mapp",
+                  command=self._open_current_file_directory).grid(row=r, column=0, sticky='w',
+                                                           **layout)
+        tk.Label(self, text='Fil som kommer skapas:').grid(row=r, column=1, sticky='w',
+                                                           **layout)
+        tk.Label(self, textvariable=self._stringvar_current_file).grid(row=r, column=2,
+                                                                       sticky='w',
+                                                                       **layout)
 
-    def set_latest_file(self, path):
-        if path:
-            self._stringvar_latest_file.set(path)
-        else:
-            self._stringvar_latest_file.set('För lite information')
+    # def set_latest_file(self, path):
+    #     if path:
+    #         self._stringvar_latest_file.set(path)
+    #     else:
+    #         self._stringvar_latest_file.set('För lite information')
+
+    def _open_current_file_directory(self, *args):
+        if not self._stringvar_current_file.get():
+            return
+        open_file_or_directory(pathlib.Path(self._stringvar_current_file.get()).parent)
 
     def set_current_file(self, path):
         if path:
@@ -1280,42 +1520,58 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         root_config = tk.Label(self, text='Rotkatalog för configfiler:')
         root_config.grid(row=r, column=0, sticky='w', **layout)
         root_config.bind('<Control-Button-1>', self._on_click_root_config)
-        tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_config_root_path).grid(row=r,
+                                                                           column=1,
+                                                                           sticky='w',
+                                                                           **layout)
 
         r += 1
         data_local = tk.Label(self, text='Sparar råfiler till mapp:')
         data_local.grid(row=r, column=0, sticky='w', **layout)
         data_local.bind('<Control-Button-1>', self._on_click_data_local)
-        tk.Label(self, textvariable=self._stringvar_data_path_local).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_data_path_local).grid(row=r, column=1,
+                                                                          sticky='w',
+                                                                          **layout)
 
         r += 1
         root_data_server = tk.Label(self, text='Spara processerad data på server:')
         root_data_server.grid(row=r, column=0, sticky='w', **layout)
         root_data_server.bind('<Control-Button-1>', self._on_click_root_data_server)
-        tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_data_root_path_server).grid(row=r,
+                                                                                column=1,
+                                                                                sticky='w',
+                                                                                **layout)
 
         r += 1
-        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2,
+                                                      sticky='ew')
 
         r += 1
         tk.Label(self, text='Vald CTD:').grid(row=r, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_ctd).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_ctd).grid(row=r, column=1, sticky='w',
+                                                              **layout)
 
         r += 1
-        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2,
+                                                      sticky='ew')
 
         r += 1
         tk.Label(self, text='Sökväg XMLCON:').grid(row=r, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_xmlcon).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, textvariable=self._stringvar_xmlcon).grid(row=r, column=1,
+                                                                 sticky='w', **layout)
 
         r += 1
-        tk.Label(self, text='Sökväg seasave.psa:').grid(row=r, column=0, sticky='w', **layout)
-        tk.Label(self, textvariable=self._stringvar_seasave_psa).grid(row=r, column=1, sticky='w', **layout)
+        tk.Label(self, text='Sökväg seasave.psa:').grid(row=r, column=0, sticky='w',
+                                                        **layout)
+        tk.Label(self, textvariable=self._stringvar_seasave_psa).grid(row=r, column=1,
+                                                                      sticky='w',
+                                                                      **layout)
 
         r += 1
-        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2, sticky='ew')
+        ttk.Separator(self, orient='horizontal').grid(row=r, column=0, columnspan=2,
+                                                      sticky='ew')
 
-        tkw.grid_configure(self, nr_columns=2, nr_rows=r+1)
+        tkw.grid_configure(self, nr_columns=2, nr_rows=r + 1)
 
     def _on_click_root_config(self, event=None):
         directory = filedialog.askdirectory(title='Rotkatalog för configfiler')
@@ -1336,6 +1592,8 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         # Add year folder if not present
         directory = pathlib.Path(directory)
         year = directory.name
+        print(f"{directory=}")
+        print(f"{year=}")
         if not (len(year) == 4 and year.isdigit()):
             directory = pathlib.Path(directory, str(datetime.datetime.now().year))
             directory.mkdir(parents=True, exist_ok=True)
@@ -1374,11 +1632,11 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
         ctd_str = f'{self.latest_instrument} ({nr})'
 
         self._stringvar_ctd.set(ctd_str)
-        self._stringvar_xmlcon.set(self.controller.get_xmlcon_path(self.latest_instrument))
+        self._stringvar_xmlcon.set(
+            self.controller.get_xmlcon_path(self.latest_instrument))
         self._stringvar_seasave_psa.set(self.controller.get_seasave_psa_path())
 
     def _set_config_root_directory(self, directory=None):
-        logger.info(f'{directory=}')
         if not directory:
             directory = self._stringvar_config_root_path.get()
         try:
@@ -1418,7 +1676,8 @@ class SelectionInfoFrame(tk.Frame, SaveSelection):
             directory = self._stringvar_data_root_path_server.get()
         try:
             self.controller.ctd_data_root_directory_server = directory
-            self._stringvar_data_root_path_server.set(self.controller.ctd_data_root_directory_server or '')
+            self._stringvar_data_root_path_server.set(
+                self.controller.ctd_data_root_directory_server or '')
         except:
             messagebox.showerror('Val av instrument',
                                  f'Något gick fel när rotkatalogen för data på servern skulle sättas: '
@@ -1473,7 +1732,6 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
 
         self.load_selection()
 
-
     def _build_frame(self):
 
         frame = tk.Frame(self)
@@ -1487,22 +1745,30 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
         width = 10
 
         self.buttons['SBE09'] = tk.Button(frame, text='SBE09', width=width,
-                                          command=lambda name='SBE09': self._on_select_instrument(name))
+                                          command=lambda
+                                              name='SBE09': self._on_select_instrument(
+                                              name))
         self.buttons['SBE09'].grid(row=1, column=0, **layout)
 
         self.buttons['SBE19'] = tk.Button(frame, text='SBE19', width=width,
-                                          command=lambda name='SBE19': self._on_select_instrument(name))
+                                          command=lambda
+                                              name='SBE19': self._on_select_instrument(
+                                              name))
         self.buttons['SBE19'].grid(row=2, column=0, **layout)
 
         # tk.Label(frame, text='(Stationära CTD-kast)').grid(row=0, column=3, **layout)
 
         self.buttons['MVP200'] = tk.Button(frame, text='MVP200', width=width,
-                                           command=lambda name='MVP200': self._on_select_instrument(name))
+                                           command=lambda
+                                               name='MVP200': self._on_select_instrument(
+                                               name))
         self.buttons['MVP200'].grid(row=3, column=0, **layout)
         self.buttons['MVP200'].config(state='disabled')
 
         self.buttons['Triaxus'] = tk.Button(frame, text='Triaxus', width=width,
-                                            command=lambda name='Triaxus': self._on_select_instrument(name))
+                                            command=lambda
+                                                name='Triaxus': self._on_select_instrument(
+                                                name))
         self.buttons['Triaxus'].grid(row=4, column=0, **layout)
         self.buttons['Triaxus'].config(state='disabled')
 
@@ -1544,44 +1810,44 @@ class FrameInstrumentButtons(tk.Frame, SaveSelection):
 
 class FrameStartUp(tk.Frame, SaveSelection):
 
-        def __init__(self, parent, controller):
-            super().__init__(parent)
+    def __init__(self, parent, controller):
+        super().__init__(parent)
 
-            self.controller = controller
+        self.controller = controller
 
-            self.__instrument = ''
+        self.__instrument = ''
 
-            self._build_frame()
+        self._build_frame()
 
-        def _build_frame(self):
-            frame = tk.Frame(self)
-            frame.grid(row=0, column=0, sticky='nw')
-            tkw.grid_configure(self)
+    def _build_frame(self):
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, sticky='nw')
+        tkw.grid_configure(self)
 
-            layout = dict(padx=5, pady=5, sticky='nwse')
+        layout = dict(padx=5, pady=5, sticky='nwse')
 
-            self._sensor_table = components.SensorTableOld(self, row=0, column=0, **layout)
-            # self._sensor_table.set_frame_color('blue')
+        self._sensor_table = components.SensorTableOld(self, row=0, column=0, **layout)
+        # self._sensor_table.set_frame_color('blue')
 
-            self._selections_to_store = ['_sensor_table']
+        self._selections_to_store = ['_sensor_table']
 
-            tkw.grid_configure(frame, nr_rows=2)
+        tkw.grid_configure(frame, nr_rows=2)
 
-        def _update_frame(self):
-            pass
+    def _update_frame(self):
+        pass
 
-        def update_sbe_instrument_info(self, instrument_info):
-            self._sensor_table.update_data(instrument_info)
-            self.load_selection()
+    def update_sbe_instrument_info(self, instrument_info):
+        self._sensor_table.update_data(instrument_info)
+        self.load_selection()
 
-        @property
-        def instrument(self):
-            return self.__instrument
+    @property
+    def instrument(self):
+        return self.__instrument
 
-        @instrument.setter
-        def instrument(self, name):
-            self.__instrument = name
-            self._sensor_table.instrument = self.__instrument
+    @instrument.setter
+    def instrument(self, name):
+        self.__instrument = name
+        self._sensor_table.instrument = self.__instrument
 
 
 class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
@@ -1620,8 +1886,15 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
         top_frame = tk.Frame(frame)
         top_frame.grid(row=0, column=0, sticky='ew')
-        self.instrument_text_frame = components.SelectedInstrumentTextFrame(top_frame, self.controller, row=0, column=0, **layout)
-        self.default_user_frame = components.SelectedDefaultUserTextFrame(top_frame, self.controller, row=0, column=1, **layout)
+        self.instrument_text_frame = components.SelectedInstrumentTextFrame(top_frame,
+                                                                            self.controller,
+                                                                            row=0,
+                                                                            column=0,
+                                                                            **layout)
+        self.default_user_frame = components.SelectedDefaultUserTextFrame(top_frame,
+                                                                          self.controller,
+                                                                          row=0, column=1,
+                                                                          **layout)
 
         ttk.Separator(frame, orient='horizontal').grid(row=1, column=0, sticky='ew')
 
@@ -1641,14 +1914,14 @@ class FrameManageCTDcastsStation(tk.Frame, SaveSelection):
 
     def _set_default_user(self):
         default_user = Defaults().user
-        print('default_user', '::::::::::::::::', default_user)
         self.default_user_frame.set(default_user)
         post_event('select_default_user', default_user)
 
     def _update_data_file_info(self, data):
-        self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
+        # self.data_file_info_frame.set_latest_file(self.content_frame.get_latest_file(server=True))
         try:
-            self.data_file_info_frame.set_current_file(self.content_frame.get_current_file())
+            self.data_file_info_frame.set_current_file(
+                self.content_frame.get_current_file())
         except ValueError as e:
             if 'Missing information' in str(e):
                 return
@@ -1686,16 +1959,20 @@ class FrameManageCTDcastsTransect(tk.Frame):
         self._build_frame()
 
     def _build_frame(self):
-
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, sticky='nw')
         tkw.grid_configure(self)
 
         layout = dict(padx=5, pady=5, sticky='nwse')
 
-        self.instrument_text_frame = components.SelectedInstrumentTextFrame(frame, self.controller, row=0, column=0, **layout)
+        self.instrument_text_frame = components.SelectedInstrumentTextFrame(frame,
+                                                                            self.controller,
+                                                                            row=0,
+                                                                            column=0,
+                                                                            **layout)
 
-        self.content_frame = TransectPreSystemFrame(frame, controller=self.controller, row=1, column=0, **layout)
+        self.content_frame = TransectPreSystemFrame(frame, controller=self.controller,
+                                                    row=1, column=0, **layout)
 
         tkw.grid_configure(frame, nr_rows=2)
 
@@ -1722,8 +1999,3 @@ def get_transect_list():
     """
     return ['BY15 <-> BY32',
             'BY32 <-> BY39']
-
-
-
-
-

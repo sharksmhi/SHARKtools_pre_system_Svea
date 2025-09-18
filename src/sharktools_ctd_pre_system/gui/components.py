@@ -714,6 +714,10 @@ class CallbackButton(tk.Frame, Common):
     def set_title(self, title: str) -> None:
         self.button.config(text=title)
 
+    def set_color(self, color: str) -> None:
+        print(f"{color=}")
+        self.button.config(bg=color)
+
 
 class DepthEntry(tk.Frame, Common):
 
@@ -1296,7 +1300,8 @@ class SeriesEntryPicker(tk.Frame, Common):
         self.entry.update_idletasks()
 
     def _on_return(self, event=None):
-        self._format_value()
+        self._on_focus_out()
+        # self._format_value()
 
     def _on_focus_out(self, event=None):
         self._format_value()
@@ -1731,6 +1736,8 @@ class LabelCheckbox(tk.Frame, Common):
                  title='New station', 
                  **kwargs):
 
+        self._hard_press = kwargs.pop('hard_press', False)
+
         self.grid_frame = {'padx': 5,
                            'pady': 5,
                            'sticky': 'nsew'}
@@ -1752,11 +1759,20 @@ class LabelCheckbox(tk.Frame, Common):
         self.intvar = tk.BooleanVar()
         self.checkbutton = tk.Checkbutton(self, variable=self.intvar, command=self._on_toggle)
         self.checkbutton.grid(row=0, column=0, **layout)
+        if self._hard_press:
+            self.checkbutton.bind('<Control-Button-1>', self._on_button_click_hard)
 
         self.monospace_label = MonospaceLabel(self, text=self.title)
         self.monospace_label.grid(row=0, column=1, **layout)
 
     def _on_toggle(self, *args):
+        if self._hard_press:
+            return
+        post_event(f'toggle_{self._id}', self.intvar.get())
+
+    def _on_button_click_hard(self, *args):
+        if self.checkbutton.cget("state") == tk.DISABLED:
+            return
         post_event(f'toggle_{self._id}', self.intvar.get())
 
     def get(self):

@@ -3,9 +3,12 @@
 #
 # Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
-
+import datetime
 import tkinter as tk
+
+import file_explorer.file_handler.seabird_ctd
 import shark_tkinter_lib.tkinter_widgets as tkw
+from file_explorer.file_handler.seabird_ctd import SBEFileHandler
 
 from . import frames
 
@@ -30,8 +33,9 @@ class PageStart(tk.Frame):
 
         self._current_instrument = None
 
-        self.sbe_paths = SBEPaths()
-        self.controller = Controller(paths_object=self.sbe_paths)
+        self.file_handler = file_explorer.file_handler.seabird_ctd.get_seabird_file_handler()
+        self.file_handler.set_year(datetime.datetime.now().year)
+        self.controller = Controller(file_handler=self.file_handler)
 
     def _add_subscribers(self):
         subscribe('select_instrument', self._on_select_instrument)
